@@ -1,23 +1,33 @@
 {
-  "version": "1.0.0",
-  "commit": "054c9782d0e6700b7a7d95fea0c140ed330d1674",
-  "date": "2026-11-24T02:48:49+00:00",
-  "notes": "First release",
+  "version": "1.1.0",
+  "commit": "00f0d484926244158c94b01be4810b6f0fb810cb",
+  "date": "2026-11-24T18:12:11+00:00",
+  "notes": "New Calibration tab (Beer's-law concentration curve and wavelength recalibration) and a shared data folder option",
   "files": [
     {
       "path": "app.py",
-      "sha256": "98dba07b321f504eacf6d1ac045308170dc7d80bf4a11e1408813f1728c59b0f",
-      "size": 50892
+      "sha256": "3501d798e4298471e9408f087d46af848f43f9c71c1ad8ebeae71248185725a1",
+      "size": 56738
     },
     {
       "path": "spectro.py",
-      "sha256": "c579a00e11234d5f3e1d5032aa9947e81e54652cd88b169efac0257d4a24cfcc",
-      "size": 16170
+      "sha256": "2dfca5777a106432034c30fe39c1148d2016982dd2640b5b16e3b79e6cade93a",
+      "size": 17287
     },
     {
       "path": "acquire.py",
       "sha256": "5717c5d47357bff5322b46d1f6785cf2896f9e41909fdab51d712a6c2ec68012",
       "size": 3989
+    },
+    {
+      "path": "calibration.py",
+      "sha256": "338cb51c63e6a14e9937ad4ae3fb425d18e1e4d094ce09459296476524d3a59a",
+      "size": 6258
+    },
+    {
+      "path": "caltab.py",
+      "sha256": "afe83bf4f4a756e944298f0cd29d5ee8f8cba11609bc23a984863810eaa57185",
+      "size": 30691
     },
     {
       "path": "updater.py",
@@ -26,7 +36,7 @@
     },
     {
       "path": "version.py",
-      "sha256": "caebfa78855fb51ba0f7b9e0abf7a89c8010c7d607d8f35f3531ee3b5c10cb5d",
+      "sha256": "51e6641ee6832b52ff37d91ad15d81187964a4786447a3d0d6413ab2602cb769",
       "size": 104
     },
     {
@@ -41,13 +51,13 @@
     },
     {
       "path": "READ ME FIRST.txt",
-      "sha256": "a0d151e38c8acd8a197ef5513712c5dd450c956986ebe41195a4a9a3d3a5d17a",
-      "size": 4528
+      "sha256": "7c9aa3b562d803c653ed21880e0ecb9d3e38fe7dc0fc4a5a66e8038d30f99366",
+      "size": 5303
     },
     {
       "path": "Ocean Spectrometer Live - Guide.pdf",
-      "sha256": "20a90c5f01c06543028cb26b5d92d0922e285205effe7703671b71257111e282",
-      "size": 814719
+      "sha256": "b03d078f5e6c3a3cd4ef5695855c06389baca200d630ad2e63e9086a8338eed0",
+      "size": 986953
     },
     {
       "path": "Ocean Spectrometer Live.bat",
