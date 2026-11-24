@@ -1,23 +1,23 @@
 {
-  "version": "1.3.1",
-  "commit": "f2b41268cf5853c340962b8c6ddfb7f97cfd0db3",
-  "date": "2026-11-24T23:27:32+00:00",
-  "notes": "Light source preset with a Set button for the integration time, and more precise line centres in wavelength calibration",
+  "version": "1.3.2",
+  "commit": "f22cd7334b9c08c3de07395d4f3ccf32e1f8ddd3",
+  "date": "2026-11-24T23:57:40+00:00",
+  "notes": "Saturation is now detected correctly with electric dark correction on at long integration times",
   "files": [
     {
       "path": "app.py",
-      "sha256": "900d51cbd76d9ab008299233734b3f1cf5019638d796301478c29ea09f664dec",
-      "size": 61318
+      "sha256": "ab2a8472ca054d6f6b0e79f3d499bfac8e849abd22a74b0c7c13ca380aef565e",
+      "size": 60399
     },
     {
       "path": "spectro.py",
-      "sha256": "73a70b6bd404dcf79332e7d6543e5c5e2e9343d60bf86a9fbb21d35b62a25bdd",
-      "size": 20218
+      "sha256": "922c502545c6a696c775dc211f3b7bd58ecefa4c58c49afc9efab58bd56cf892",
+      "size": 21964
     },
     {
       "path": "acquire.py",
-      "sha256": "5717c5d47357bff5322b46d1f6785cf2896f9e41909fdab51d712a6c2ec68012",
-      "size": 3989
+      "sha256": "d08acfb7b99878ebe9b6da6e1e08cf88b25cdc8ed422a01c61370a7cd04233ab",
+      "size": 4364
     },
     {
       "path": "calibration.py",
@@ -36,7 +36,7 @@
     },
     {
       "path": "version.py",
-      "sha256": "63b4db1f44db61e51e934072983406d8691fa6350633910d0187035b5eb5cccd",
+      "sha256": "c321d22bf71def6cdfec5cb737b7ee7fd8de27b9fb8f713fc868ba9fe7c5d36c",
       "size": 104
     },
     {
