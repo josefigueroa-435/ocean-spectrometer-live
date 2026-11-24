@@ -1,8 +1,8 @@
 {
-  "version": "1.1.0",
-  "commit": "00f0d484926244158c94b01be4810b6f0fb810cb",
-  "date": "2026-11-24T18:12:11+00:00",
-  "notes": "New Calibration tab (Beer's-law concentration curve and wavelength recalibration) and a shared data folder option",
+  "version": "1.2.0",
+  "commit": "e30516e75ba92f71388e2be9b495389c57c9d5bd",
+  "date": "2026-11-24T22:37:02+00:00",
+  "notes": "Wavelength calibration: lamp presets (Hg-Ar, deuterium) and automatic search for large offsets",
   "files": [
     {
       "path": "app.py",
@@ -21,13 +21,13 @@
     },
     {
       "path": "calibration.py",
-      "sha256": "338cb51c63e6a14e9937ad4ae3fb425d18e1e4d094ce09459296476524d3a59a",
-      "size": 6258
+      "sha256": "394000bcb127c5fb4a071ceaa39a0abb6611c64e1d371a7065840cd5fa9835d0",
+      "size": 8378
     },
     {
       "path": "caltab.py",
-      "sha256": "afe83bf4f4a756e944298f0cd29d5ee8f8cba11609bc23a984863810eaa57185",
-      "size": 30691
+      "sha256": "89d1a38b8cf7594402faf2b99c4bcf82f9605e685d4f820ecb770b7a8401a743",
+      "size": 32323
     },
     {
       "path": "updater.py",
@@ -36,7 +36,7 @@
     },
     {
       "path": "version.py",
-      "sha256": "51e6641ee6832b52ff37d91ad15d81187964a4786447a3d0d6413ab2602cb769",
+      "sha256": "f6bad9692203e9f2d9da8925e2c0eafc108383811b3226f4481361e27d1b82ee",
       "size": 104
     },
     {
@@ -56,8 +56,8 @@
     },
     {
       "path": "Ocean Spectrometer Live - Guide.pdf",
-      "sha256": "b03d078f5e6c3a3cd4ef5695855c06389baca200d630ad2e63e9086a8338eed0",
-      "size": 986953
+      "sha256": "1637a430d6300b16323a6d51a438e665bd9e809d1164ffe8e59975a8abd7dc96",
+      "size": 992023
     },
     {
       "path": "Ocean Spectrometer Live.bat",
