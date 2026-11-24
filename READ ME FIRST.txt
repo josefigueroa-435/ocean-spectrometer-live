@@ -1,0 +1,93 @@
+OCEAN SPECTROMETER LIVE
+=======================
+A program that shows live spectra from an Ocean Optics HR4000 spectrometer on a
+Windows computer: absorbance, transmittance, peak finding, time trends (kinetics),
+and saving to CSV files you can open in Excel.
+
+The full guide, with pictures, is "Ocean Spectrometer Live - Guide.pdf" in this
+folder. This file is the short version.
+
+
+WHAT YOU NEED
+-------------
+- The HR4000, its USB cable (and its power supply, if it has one)
+- A Windows 10 or 11 computer
+- Administrator rights ONCE (for the USB driver). On a university computer, IT may
+  need to do step 4.
+- Internet ONCE (for Python and its packages)
+- You do NOT need Ocean's OceanView or SpectraSuite. If they are installed, close
+  them while using this program: only one program can use the spectrometer at a time.
+
+
+ONE-TIME SETUP (about 15 minutes)
+---------------------------------
+1. UNZIP
+   If the zip came by email/download: right-click the zip > Properties > tick
+   "Unblock" (if shown) > OK. Then right-click > Extract All, and put the folder
+   somewhere permanent (for example Documents). Don't run anything from inside
+   the zip.
+
+2. INSTALL PYTHON (skip if already installed)
+   Download Python 3 (3.10 or newer) from https://www.python.org/downloads/
+   In the installer, TICK "Add python.exe to PATH", then click "Install Now".
+
+3. INSTALL THE PYTHON PACKAGES
+   Double-click "Install requirements.bat". Wait for "Done", then press a key.
+
+4. INSTALL THE USB DRIVER
+   a. Plug the HR4000 into USB (and power).
+   b. Double-click "Install HR4000 driver (run once).bat" and click YES when
+      Windows asks for permission.
+   c. It should say "Driver package added successfully" and "installed on device".
+   d. UNPLUG the HR4000's USB cable, wait 5 seconds, PLUG IT BACK IN.
+      (After a driver change the HR4000 often drops off USB until it is replugged.)
+   Check: Device Manager > "Ocean Optics USB Devices" > "Ocean Optics HR4000 (WinUSB)",
+   with no yellow triangle.
+
+5. OPTIONAL: double-click "Make desktop shortcut.bat" to get a desktop icon.
+
+6. OPTIONAL: double-click "Ocean Spectrometer Live (demo).bat" to try the program
+   with a simulated spectrometer (no hardware needed).
+
+
+EVERY DAY
+---------
+Plug in the spectrometer, then double-click "Ocean Spectrometer Live.bat" (or the
+desktop shortcut). It connects by itself and starts measuring.
+
+Measuring absorbance:
+  1. Blank in, "Scope" mode. Set the integration time so the highest point is at
+     50-85% of full scale (shown under the Pause button; red SATURATED = too high).
+  2. Block the light, click "Store dark".   (key D)
+  3. Unblock, blank in, click "Store reference".   (key R)
+  4. Choose "Absorbance", put the sample in, read "Peak in view" (zoom with the
+     magnifier to pick a band).
+  5. Type a sample name, click "Save CSV".   (key S)
+  Store dark + reference again after changing the integration time (the labels
+  turn orange to remind you).
+
+Saved files go into the "logs" folder in this folder (button "Logs folder"):
+  logs\spectra  - spectra (CSV)
+  logs\graphs   - pictures of the plot (PNG)
+  logs\trends   - values over time from the Trend tab (CSV)
+
+
+IF SOMETHING IS WRONG
+---------------------
+- The left panel says what Windows sees and what to do; read it first.
+- "No Ocean Optics spectrometer is on USB": check the cable and power, try another
+  USB port, click Refresh.
+- "Windows sees the HR4000 but has no driver": do setup step 4.
+- "could not be opened": close OceanView/SpectraSuite or another copy of this
+  program, replug, click Refresh.
+- Nothing happens when you start the program: run "Install requirements.bat"
+  again. Still nothing? Type cmd in the folder's address bar, press Enter, and run:
+      py app.py
+  to see the error message.
+- "Windows protected your PC" when opening a .bat: click "More info" > "Run anyway".
+
+More in section 12 of the guide (PDF).
+
+
+The program only READS spectra and sets the integration time. It never changes the
+calibration stored in the spectrometer.

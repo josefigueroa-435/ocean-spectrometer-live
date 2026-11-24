@@ -1,0 +1,3 @@
+# Store every file byte-for-byte (no CRLF/LF conversion): release.json checksums must match
+# what raw.githubusercontent.com serves, and .bat files must keep CRLF.
+* -text

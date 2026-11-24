@@ -1,0 +1,4 @@
+seabreeze[pyseabreeze]
+libusb-package
+numpy
+matplotlib

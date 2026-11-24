@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ocean Spectrometer Live - User Guide</title>
+<style>
+  @page { size: Letter; margin: 16mm 15mm 16mm 15mm; }
+  :root { --ink: #1c2430; --muted: #5b6573; --line: #d9dee5; --accent: #1f5fbf; --warn: #b45309; --bad: #b91c1c; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.45; margin: 0; }
+  h1 { font-size: 24pt; margin: 0 0 4pt; color: var(--accent); }
+  h2 { font-size: 15pt; margin: 18pt 0 6pt; padding-bottom: 3pt; border-bottom: 2px solid var(--accent); page-break-after: avoid; }
+  h3 { font-size: 12pt; margin: 12pt 0 4pt; page-break-after: avoid; }
+  p, li { margin: 3pt 0; }
+  ol, ul { padding-left: 20pt; margin: 4pt 0; }
+  .subtitle { color: var(--muted); font-size: 11.5pt; margin-bottom: 10pt; }
+  .break { page-break-before: always; }
+  code, kbd, .file { font-family: Consolas, "Courier New", monospace; font-size: 9.5pt; background: #f1f3f6; padding: 0 3px; border-radius: 3px; }
+  kbd { border: 1px solid #c4cad3; border-bottom-width: 2px; background: #fff; }
+  .file { background: #eef4ff; }
+  pre { font-family: Consolas, monospace; font-size: 9pt; background: #f6f8fa; border: 1px solid var(--line); padding: 6pt 8pt; border-radius: 4px; white-space: pre-wrap; page-break-inside: avoid; }
+  figure { margin: 8pt 0 10pt; page-break-inside: avoid; }
+  figure img { width: 100%; border: 1px solid var(--line); border-radius: 3px; }
+  figure.small img { width: auto; max-width: 60%; }
+  figure.mid img { width: 80%; }
+  figcaption { color: var(--muted); font-size: 9pt; margin-top: 3pt; }
+  table { border-collapse: collapse; width: 100%; margin: 6pt 0 10pt; font-size: 9.8pt; page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+  th, td { border: 1px solid var(--line); padding: 4pt 6pt; vertical-align: top; text-align: left; }
+  th { background: #eef2f7; }
+  .box { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: #f7f9fc; padding: 6pt 10pt; margin: 8pt 0; border-radius: 3px; page-break-inside: avoid; }
+  .box.warn { border-left-color: var(--warn); background: #fff8ef; }
+  .step { display: grid; grid-template-columns: 26pt 1fr; gap: 0 8pt; margin: 9pt 0; page-break-inside: avoid; }
+  .step .n { width: 22pt; height: 22pt; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 11pt; }
+  .step h3 { margin-top: 1pt; }
+  .toc { columns: 2; column-gap: 20pt; padding-left: 16pt; }
+  .toc li { margin: 1pt 0; }
+  .muted { color: var(--muted); }
+  .callouts td:first-child { width: 22pt; text-align: center; font-weight: 700; color: #fff; background: #dc2626; }
+</style>
+</head>
+<body>
+
+<h1>Ocean Spectrometer Live</h1>
+<div class="subtitle">User guide for the live-spectrum app for the Ocean Optics <b>HR4000</b> spectrometer<br>
+(it also works with other Ocean Optics models supported by python-seabreeze)</div>
+
+<div class="box">
+<b>In short:</b> install Python, run <span class="file">Install requirements.bat</span>, plug in the HR4000, run
+<span class="file">Install HR4000 driver (run once).bat</span>, <b>unplug and replug</b> the spectrometer, then start
+<span class="file">Ocean Spectrometer Live.bat</span>. Sections 1 and 2 walk through it, and section 12 covers problems.
+</div>
+
+<h3>Contents</h3>
+<ol class="toc">
+  <li>What you need</li>
+  <li>One-time setup</li>
+  <li>Starting the app and connecting</li>
+  <li>A tour of the window</li>
+  <li>Acquisition settings</li>
+  <li>Modes, dark and reference</li>
+  <li>Measuring absorbance, step by step</li>
+  <li>Emission lines and light sources</li>
+  <li>Kinetics and time trends</li>
+  <li>Saving, files and Excel</li>
+  <li>Keyboard shortcuts</li>
+  <li>Troubleshooting</li>
+  <li>Good to know</li>
+  <li>What is in the folder</li>
+</ol>
+
+<h2>1. What you need</h2>
+<ul>
+  <li>The <b>HR4000 spectrometer</b>, its <b>USB cable</b>, and its power supply if your unit has one. Add the light source, fibers and
+      cuvette holder that your measurement uses.</li>
+  <li>A <b>Windows 10 or 11</b> computer.</li>
+  <li><b>Administrator rights once</b>, to install the USB driver. On a university-managed computer you may need IT for that one step.</li>
+  <li><b>Internet once</b>, to download Python and the Python packages.</li>
+  <li>About 15 minutes for the first setup. After that, starting the app takes a double-click.</li>
+</ul>
+<p>You do <b>not</b> need Ocean's OceanView or SpectraSuite software. If either is installed, close it before using this app,
+because only one program can use the spectrometer at a time.</p>
+
+<h2 class="break">2. One-time setup</h2>
+<p>Do these steps once per computer, in this order.</p>
+
+<div class="step"><div class="n">1</div><div>
+<h3>Unzip the folder</h3>
+<ol>
+  <li>If the zip came by email or download, first <b>right-click the zip &rarr; Properties</b>. If there is an <b>Unblock</b> box at the bottom,
+      tick it and click OK. This stops Windows from warning you about every file inside.</li>
+  <li>Right-click the zip &rarr; <b>Extract All...</b> and put the folder somewhere permanent, for example
+      <span class="file">Documents\Ocean Spectrometer Live</span>.</li>
+  <li>Always run the app from the extracted folder, never from inside the zip.</li>
+</ol>
+</div></div>
+
+<div class="step"><div class="n">2</div><div>
+<h3>Install Python (skip if it is already installed)</h3>
+<ol>
+  <li>Go to <b>python.org/downloads</b> and download the latest Python 3 for Windows (3.10 or newer, 64-bit).</li>
+  <li>Run the installer. On the first screen, <b>tick "Add python.exe to PATH"</b>, then click <b>Install Now</b>.</li>
+  <li>To check, open <b>Command Prompt</b> and type <code>py --version</code>. It should print something like <code>Python 3.13.1</code>.</li>
+</ol>
+</div></div>
+
+<div class="step"><div class="n">3</div><div>
+<h3>Install the Python packages</h3>
+<p>Double-click <span class="file">Install requirements.bat</span> in the app folder. It downloads the packages the app uses
+(<code>seabreeze</code>, <code>pyusb</code>, <code>libusb-package</code>, <code>numpy</code>, <code>matplotlib</code>), which takes a minute or two.
+Wait until it says <b>Done</b>, then press a key to close the window.</p>
+</div></div>
+
+<div class="step"><div class="n">4</div><div>
+<h3>Install the HR4000 USB driver</h3>
+<ol>
+  <li>Plug the HR4000 into a USB port (and into power, if it has a power supply).</li>
+  <li>Double-click <span class="file">Install HR4000 driver (run once).bat</span>. Windows asks
+      <i>"Do you want to allow this app to make changes to your device?"</i>. Click <b>Yes</b>.</li>
+  <li>The window should show <code>Driver package added successfully</code> and
+      <code>Driver package installed on device: USB\VID_2457&amp;PID_1012...</code>. Press a key to close it.</li>
+  <li><b>Unplug the HR4000's USB cable, wait 5 seconds, and plug it back in.</b> When Windows switches to the new driver, the
+      HR4000 often disappears from USB and does not come back until it is replugged. If it has its own power supply,
+      unplug that for a few seconds too.</li>
+</ol>
+<p>To check, open <b>Device Manager</b> (right-click Start &rarr; Device Manager). Under <b>Ocean Optics USB Devices</b> you should
+see <b>Ocean Optics HR4000 (WinUSB)</b> with no yellow warning triangle.</p>
+<p class="muted">The driver is Ocean Optics' own package for the HR4000, signed by Microsoft (taken from the python-seabreeze project).
+It only connects Windows' built-in WinUSB driver to the HR4000. The files are in the <span class="file">driver</span> folder.</p>
+</div></div>
+
+<div class="step"><div class="n">5</div><div>
+<h3>Make a desktop shortcut (optional)</h3>
+<p>Double-click <span class="file">Make desktop shortcut.bat</span>. An <b>Ocean Spectrometer Live</b> icon appears on your desktop.</p>
+</div></div>
+
+<div class="step"><div class="n">6</div><div>
+<h3>Try the demo</h3>
+<p>Double-click <span class="file">Ocean Spectrometer Live (demo).bat</span>. This opens the app with a <b>simulated HR4000</b>, so you can try every
+button without the instrument. The demo has a halogen or Hg-Ar lamp, a shutter for storing a dark spectrum, and a sample that
+absorbs near 520 nm and slowly fades, so the Trend tab has something to show. Everything you save in the demo goes into the same
+<span class="file">logs</span> folder, so you can delete those files afterwards.</p>
+</div></div>
+
+<h2>3. Starting the app and connecting</h2>
+<ol>
+  <li>Plug in the spectrometer and wait a few seconds.</li>
+  <li>Double-click the desktop shortcut or <span class="file">Ocean Spectrometer Live.bat</span>. The window opens maximized.</li>
+  <li>If exactly one spectrometer is found, the app <b>connects and starts measuring on its own</b>. With more than one, pick
+      yours in the list and click <b>Connect</b>.</li>
+  <li>The Spectrometer panel then shows the number of pixels (3840 for the HR4000), the wavelength range, the maximum counts
+      (16383 for the HR4000's 14-bit detector) and the allowed integration times. The wavelength range comes from the
+      calibration stored inside your spectrometer, so it depends on the grating your unit was built with.</li>
+</ol>
+<p>If no spectrometer is found, the Spectrometer panel says why and what to do next. See section 12.</p>
+<p>The app remembers your settings (integration time, averaging, mode, sample name, trend wavelengths) for next time.</p>
+
+<h2 class="break">4. A tour of the window</h2>
+<figure><img src="img/overview.png" alt="Main window with numbered areas"><figcaption>The main window, showing the demo spectrometer with the halogen lamp in Scope mode.</figcaption></figure>
+<table class="callouts">
+  <tr><td>1</td><td><b>Spectrometer</b>: the list of connected spectrometers, with Refresh, Connect and Disconnect, and the details of the connected unit.</td></tr>
+  <tr><td>2</td><td><b>Acquisition</b>: integration time, averaging, smoothing, corrections, Pause/Run and Single, the measurement rate, and the signal level / saturation warning (section 5).</td></tr>
+  <tr><td>3</td><td><b>Mode</b>: Scope, Scope - dark, Absorbance and Transmittance, plus <b>Store dark</b> and <b>Store reference</b> and their status (section 6).</td></tr>
+  <tr><td>4</td><td><b>Save</b>: sample name, Save CSV, Save graph, Logs folder, and Hold / Overlay file / Clear held to compare traces (section 10).</td></tr>
+  <tr><td>5</td><td><b>Demo spectrometer</b>: only shown in the demo. Lamp, sample and shutter switches.</td></tr>
+  <tr><td>6</td><td><b>Plot toolbar</b>: Home (reset the view), Back/Forward, <b>Pan</b> (hand), <b>Zoom</b> (magnifier: drag a box), plot margins and Save image.
+      To the right, <b>Auto-scale Y</b> keeps the vertical axis fitted to the data, and <b>Full range</b> shows the whole wavelength range again.</td></tr>
+  <tr><td>7</td><td><b>Peak in view</b>: wavelength, height and FWHM (full width at half maximum) of the largest peak <i>inside the visible range</i>.
+      Zoom in on a band to measure that band. At the far right, <b>Cursor</b> shows the wavelength and value under the mouse pointer.</td></tr>
+  <tr><td>8</td><td><b>Live spectrum</b>. The red triangle marks the peak.</td></tr>
+  <tr><td>9</td><td><b>Status bar</b>: messages, including where each file was saved. Errors appear here in red.</td></tr>
+  <tr><td>10</td><td><b>Tabs</b>: <b>Spectrum</b> (the live spectrum) and <b>Trend</b> (values over time, section 9).</td></tr>
+</table>
+
+<h2 class="break">5. Acquisition settings</h2>
+<table>
+  <tr><th style="width:24%">Setting</th><th>What it does and how to choose it</th></tr>
+  <tr><td><b>Integration time (ms)</b></td><td>How long the detector collects light for each spectrum: longer means more signal but slower updates.
+    <b>Aim for the highest point of your spectrum (usually the reference/blank) at 50-85% of full scale.</b>
+    The line under Pause shows <i>"Max N counts (x% of full scale)"</i>. It turns orange below 10% (too little light), and red
+    with <b>SATURATED</b> when the detector is full. Type a value and press <kbd>Enter</kbd> (or click elsewhere).</td></tr>
+  <tr><td><b>Scans to average</b></td><td>Averages several spectra into one, which lowers noise by about the square root of the number of scans
+    (4 scans give half the noise). Each displayed spectrum then takes <i>scans &times; integration time</i>. Typical: 3-10.</td></tr>
+  <tr><td><b>Boxcar half-width (px)</b></td><td>Smooths each pixel with its neighbours (k pixels on each side). It lowers noise for broad bands but
+    <b>broadens narrow lines</b>, so keep it at 0 when measuring emission lines or FWHM. It affects the display and the processed column of
+    saved files, while the saved raw, dark and reference columns stay unsmoothed.</td></tr>
+  <tr><td><b>Electric dark correction</b></td><td>Subtracts the average of the detector's covered ("electric dark") pixels from every spectrum. This removes
+    the electronic offset, which drifts with temperature. Recommended: <b>on</b>.</td></tr>
+  <tr><td><b>Nonlinearity correction</b></td><td>Corrects the detector's slightly non-linear response, using coefficients stored in the spectrometer.
+    Useful for quantitative work when signals vary over a wide range.</td></tr>
+  <tr><td><b>Pause / Run</b>, <b>Single</b></td><td>Pause stops measuring (<kbd>Space</kbd> toggles it). Single takes exactly one spectrum (with averaging) and then pauses.</td></tr>
+  <tr><td><b>spectra/s</b></td><td>How many averaged spectra per second the spectrometer delivers. The screen refreshes several times a second, however fast that is.</td></tr>
+</table>
+<div class="box">The first spectrum after you change the integration time is thrown away automatically, because it can still carry the old exposure.
+Changing the integration time or either correction changes the counts, so <b>store the dark and reference again afterwards</b>.
+The app reminds you (section 6).</div>
+<figure class="mid"><img src="img/saturated.png" alt="Saturation warning"><figcaption>Saturated: the top of the spectrum is cut flat at the detector's maximum. Lower the integration time until the red warning goes away. Never use saturated spectra for absorbance.</figcaption></figure>
+
+<h2>6. Modes, dark and reference</h2>
+<table>
+  <tr><th style="width:22%">Mode</th><th>Shows</th><th style="width:28%">Needs</th></tr>
+  <tr><td><b>Scope</b></td><td>Raw counts from the detector.</td><td>Nothing</td></tr>
+  <tr><td><b>Scope - dark</b></td><td>Counts minus the stored dark spectrum (S - D).</td><td>Dark</td></tr>
+  <tr><td><b>Absorbance</b></td><td>A = -log<sub>10</sub>[(S - D) / (R - D)], in absorbance units (AU).</td><td>Dark and reference</td></tr>
+  <tr><td><b>Transmittance</b></td><td>%T = 100 &times; (S - D) / (R - D).</td><td>Dark and reference</td></tr>
+</table>
+<p class="muted">S = current sample spectrum, D = stored dark, R = stored reference (blank).</p>
+<ul>
+  <li><b>Store dark</b> (<kbd>D</kbd>): the spectrum with <b>no light</b> reaching the spectrometer (lamp shutter closed, or the fiber capped).</li>
+  <li><b>Store reference</b> (<kbd>R</kbd>): the spectrum of the <b>blank</b> (cuvette with only solvent, or the empty light path).</li>
+  <li>The app stores the <b>next complete spectrum after you click</b>, never an older one, so click and then wait a moment.
+      The label turns green with the time and the settings it was taken at.</li>
+  <li>If you change the integration time or a correction afterwards, the labels turn <b>orange</b> and say <i>"store again"</i>.</li>
+  <li>If you pick Absorbance before storing a dark and a reference, the plot shows raw counts with a message saying what is missing.</li>
+</ul>
+<figure class="small"><img src="img/stale_dark.png" alt="Dark and reference labels asking to store again"><figcaption>After the integration time was changed from 100 to 150 ms, both labels ask you to store the dark and reference again.</figcaption></figure>
+
+<h2 class="break">7. Measuring absorbance, step by step</h2>
+<ol>
+  <li><b>Warm up the lamp.</b> Turn the light source on and let it stabilise (check its manual; often 15-30 minutes).</li>
+  <li><b>Put the blank in</b> (cuvette with solvent only). Select <b>Scope</b>.</li>
+  <li><b>Set the integration time</b> so the highest point is at 50-85% of full scale, and set <b>Scans to average</b> (for example 5).</li>
+  <li><b>Block the light</b> (shutter closed or fiber capped) and click <b>Store dark</b>. Wait until the Dark label turns green.</li>
+  <li><b>Unblock the light</b> with the blank still in, and click <b>Store reference</b>. Wait until the Reference label turns green.</li>
+  <li>Select <b>Absorbance</b>. With the blank still in, the line should be flat near 0. If not, store the dark and reference again.</li>
+  <li><b>Put the sample in.</b> Zoom in on the absorption band (magnifier tool) and read <b>Peak in view</b>, or hover with the mouse to read any wavelength.</li>
+  <li>Type a <b>Sample name</b> and click <b>Save CSV</b> (<kbd>S</kbd>). Repeat steps 7-8 for each sample.</li>
+  <li>Store a new dark and reference every so often (lamps drift), and always after changing the integration time.</li>
+</ol>
+<figure><img src="img/absorbance.png" alt="Absorbance mode"><figcaption>Absorbance of the demo sample (peak near 520 nm). The status bar shows where the CSV was saved.</figcaption></figure>
+<div class="box warn">
+<b>Noisy edges are normal.</b> Where the lamp gives almost no light (with a halogen lamp, below about 300 nm), the absorbance is mostly noise,
+as on the left of the picture above. The app still draws those pixels, but leaves them out of the peak search and the automatic Y scale.
+For UV work, use a deuterium (UV) lamp.<br>
+<b>Stay below about A = 1.5.</b> Above roughly 2 AU less than 1% of the light gets through, and stray light makes the reading unreliable.
+Dilute strongly absorbing samples.
+</div>
+
+<h2 class="break">8. Emission lines and light sources</h2>
+<ol>
+  <li>Point the fiber at the light source (LED, laser, discharge lamp, flame...). Use <b>Scope</b> mode, or <b>Scope - dark</b> after
+      storing a dark with the source off.</li>
+  <li>Set the integration time so the strongest line is not saturated.</li>
+  <li>Set <b>Boxcar</b> to 0 so lines stay sharp.</li>
+  <li>Zoom in on a line with the magnifier. <b>Peak in view</b> shows its center wavelength and <b>FWHM</b>. The FWHM of a narrow
+      atomic line is the optical resolution of your spectrometer.</li>
+</ol>
+<figure><img src="img/lines_zoom.png" alt="Hg-Ar lines zoomed"><figcaption>Demo Hg-Ar lamp zoomed to 535-590 nm: the Hg 546.07 nm line and the 576.96 / 579.07 nm doublet.</figcaption></figure>
+<p><b>Checking the wavelength calibration:</b> a mercury-argon (Hg-Ar) calibration lamp has lines at well-known wavelengths, for example
+Hg 253.65, 365.02, 404.66, 435.83, 546.07, 576.96, 579.07 nm and Ar 696.54, 706.72, 738.40, 763.51, 811.53, 912.30 nm. Each peak should
+appear within a fraction of a nanometre of these values. The app reads the calibration from the spectrometer and never changes it.</p>
+
+<h2 class="break">9. Kinetics and time trends (Trend tab)</h2>
+<ol>
+  <li>Set up as for absorbance (dark, reference, <b>Absorbance</b> mode). The trend logs whatever the current mode shows.</li>
+  <li>Open the <b>Trend</b> tab and enter:
+    <ul>
+      <li><b>Wavelengths</b>: up to 6, separated by commas. A good choice is the band maximum plus one wavelength where nothing absorbs,
+          for example <code>520, 700</code>. The second one shows baseline drift.</li>
+      <li><b>&plusmn; band (nm)</b>: averages all pixels within this distance of each wavelength, which reduces noise (1 nm is a good start).</li>
+      <li><b>Log every (s)</b>: how often to record a point; 0 means every spectrum.</li>
+    </ul></li>
+  <li>Start the reaction, then click <b>Start trend</b>. Points appear live, and each one is written to the file immediately
+      (nothing is lost if the computer crashes).</li>
+  <li>Click <b>Stop trend</b> when done. The file is <span class="file">logs\trends\trend_&lt;date&gt;_&lt;time&gt;_&lt;sample&gt;.csv</span>.</li>
+</ol>
+<figure><img src="img/trend.png" alt="Trend tab"><figcaption>Trend of absorbance at 520 nm (fading demo sample) and 700 nm (baseline).</figcaption></figure>
+<ul>
+  <li>Only spectra that <b>started after</b> you click Start trend are logged, so time 0 really is when you clicked.</li>
+  <li>Logging pauses, with a message, if the dark or reference is missing or if you switch mode. To log a different mode, stop the trend and start a new one.</li>
+  <li>For first-order kinetics, open the CSV in Excel and plot ln(A) against <code>elapsed_s</code>. The slope is -k.</li>
+</ul>
+
+<h2 class="break">10. Saving, files and Excel</h2>
+<p>Everything is saved inside the app folder, in <span class="file">logs</span>. Click <b>Logs folder</b> to open it.</p>
+<table>
+  <tr><th style="width:30%">Folder</th><th>What goes there</th></tr>
+  <tr><td><span class="file">logs\spectra</span></td><td><b>Save CSV</b> (<kbd>S</kbd>): one spectrum per file, named <code>&lt;date&gt;_&lt;time&gt;_&lt;sample name&gt;.csv</code>.</td></tr>
+  <tr><td><span class="file">logs\graphs</span></td><td><b>Save graph</b>: a PNG image (150 dpi) of whichever tab is showing, ready for a report.</td></tr>
+  <tr><td><span class="file">logs\trends</span></td><td>Trend logs (section 9).</td></tr>
+</table>
+<h3>Spectrum CSV format</h3>
+<p>The top lines start with <code>#</code> and record how the spectrum was taken. A table with one row per pixel follows.
+This example was saved from the demo spectrometer:</p>
+<pre># Saved: 2026-11-23T17:13:17
+# Program: Ocean Spectrometer Live
+# Spectrometer: HR4000 (demo) serial DEMO0001
+# USB backend: demo
+# Spectrum taken: 2026-11-23T17:13:17
+# Integration time (ms): 100
+# Scans averaged: 3
+# Boxcar half-width (px): 3
+# Electric dark correction: True
+# Nonlinearity correction: False
+# Mode: Absorbance
+# Sample: dye sample 1
+# Dark stored: 2026-11-23T17:13:12, 100 ms x 3
+# Reference stored: 2026-11-23T17:13:14, 100 ms x 3
+# Note: raw/dark/reference columns are unsmoothed; the last column has the boxcar applied
+wavelength_nm,raw_counts,dark_counts,reference_counts,Absorbance [Absorbance (AU)]
+199.6000,-2.66667,-1.66667,-5.33333,
+199.8297,1.66667,-2.33333,4,
+...
+519.9097,935.333,0.666667,4756.33,0.70819
+520.1429,935.667,-4.66667,4765.33,0.707364
+...</pre>
+<p class="muted">Small negative counts are normal with electric dark correction on: it subtracts the electronic offset, leaving only noise where there is no light.</p>
+<ul>
+  <li><b>raw_counts</b>, <b>dark_counts</b> and <b>reference_counts</b> are unsmoothed, so you can redo any calculation yourself.
+      The last column is what the screen showed, in the current mode with boxcar smoothing applied.</li>
+  <li>Empty cells mean "not available": no dark stored, or absorbance undefined because there was no light at that pixel.</li>
+  <li><b>In Excel:</b> double-click the file. The <code>#</code> lines appear as text at the top; select the data columns below them and insert a
+      <b>Scatter with straight lines</b> chart, with wavelength on X.</li>
+</ul>
+<h3>Trend CSV format</h3>
+<pre>time,elapsed_s,mode,520nm,700nm
+2026-11-23T17:12:05.123,0.512,Absorbance,0.6812,0.0004</pre>
+<h3>Comparing spectra</h3>
+<ul>
+  <li><b>Hold</b> (<kbd>H</kbd>) freezes a copy of the current trace on the plot, labelled with the time and sample name.</li>
+  <li><b>Overlay file...</b> loads a saved spectrum CSV onto the plot.</li>
+  <li><b>Clear held</b> removes them. Switching mode also clears them, because the units change.</li>
+</ul>
+
+<h2>11. Keyboard shortcuts</h2>
+<p>These work when the cursor is not in a text box:</p>
+<table>
+  <tr><th style="width:18%">Key</th><th>Action</th></tr>
+  <tr><td><kbd>Space</kbd></td><td>Pause / Run</td></tr>
+  <tr><td><kbd>D</kbd></td><td>Store dark</td></tr>
+  <tr><td><kbd>R</kbd></td><td>Store reference</td></tr>
+  <tr><td><kbd>S</kbd></td><td>Save spectrum (CSV)</td></tr>
+  <tr><td><kbd>H</kbd></td><td>Hold the current trace</td></tr>
+</table>
+
+<h2 class="break">12. Troubleshooting</h2>
+<table>
+  <tr><th style="width:36%">What you see</th><th>What to do</th></tr>
+  <tr><td>Nothing happens when you double-click the app.</td><td>Run <span class="file">Install requirements.bat</span> again. If the app still does not open,
+      open Command Prompt in the app folder (type <code>cmd</code> in the Explorer address bar and press Enter) and run <code>py app.py</code>,
+      which prints the error.</td></tr>
+  <tr><td>A message says some Python packages are not installed.</td><td>Run <span class="file">Install requirements.bat</span> (needs internet).</td></tr>
+  <tr><td>"Python was not found" when running Install requirements.</td><td>Install Python (setup step 2), making sure "Add python.exe to PATH" is ticked.</td></tr>
+  <tr><td>"Windows protected your PC" or a security warning when opening a .bat file.</td><td>Click <b>More info &rarr; Run anyway</b>. To avoid this, unblock the zip before extracting it (setup step 1).</td></tr>
+  <tr><td>Spectrometer panel: <i>"No Ocean Optics spectrometer is on USB."</i></td><td>Check the USB cable and the power supply. Try another USB port. Then click <b>Refresh</b>.</td></tr>
+  <tr><td>Spectrometer panel: <i>"Windows sees the HR4000 but has no driver for it."</i></td><td>Run <span class="file">Install HR4000 driver (run once).bat</span> (setup step 4), replug, then click <b>Refresh</b>.</td></tr>
+  <tr><td>The spectrometer vanished right after installing the driver.</td><td>Normal: unplug it, wait 5 seconds, plug it back in (and power-cycle it if it has a supply).</td></tr>
+  <tr><td>Spectrometer panel: <i>"Windows has a driver ... but it could not be opened."</i></td><td>Another program is using it. Close OceanView, SpectraSuite, or a second copy of this app, then replug and click <b>Refresh</b>.</td></tr>
+  <tr><td>Status bar (red): <i>"Acquisition stopped: ..."</i></td><td>Usually the USB cable came loose. Replug, click <b>Refresh</b>, then <b>Connect</b>.</td></tr>
+  <tr><td><b>SATURATED</b> in red.</td><td>Lower the integration time, or reduce the light (fiber further away, attenuator, narrower slit).</td></tr>
+  <tr><td>Max counts in orange (under 10% of full scale).</td><td>Too little light: raise the integration time, check the fiber connections, and check that the lamp is on and the shutter open.</td></tr>
+  <tr><td>Flat line near zero.</td><td>Light is not reaching the spectrometer: shutter closed, fiber unplugged, or lamp off.</td></tr>
+  <tr><td>Absorbance is noisy, negative or drifting.</td><td>Store the dark and reference again with the blank in, and check that the reference was not saturated and that the lamp is warmed up.
+      Make sure no light leaked in while storing the dark.</td></tr>
+  <tr><td>Dark/Reference labels are orange ("store again").</td><td>Settings changed after storing them. Store both again.</td></tr>
+  <tr><td>Still no connection after all of the above.</td><td>Try the other USB backend: in Command Prompt in the app folder run <code>py app.py --backend pyseabreeze</code>.</td></tr>
+</table>
+
+<h2>13. Good to know</h2>
+<ul>
+  <li><b>The app is read-only for the instrument.</b> It only reads spectra and sets the integration time. It never changes the wavelength or
+      nonlinearity calibration stored in the spectrometer, so nothing you do in the app can damage the calibration.</li>
+  <li>The <b>wavelength calibration</b> comes from the spectrometer's own memory, so wavelengths are correct for your unit.</li>
+  <li><b>Other Ocean Optics models</b> (USB2000+, USB4000, Flame, QE65000, ...) work too, but need their own driver. With the spectrometer
+      plugged in, run <code>py -m seabreeze.os_setup</code> in Command Prompt (it needs internet and asks for administrator rights), then replug.</li>
+  <li><b>Removing the driver:</b> in an administrator Command Prompt run <code>pnputil /enum-drivers</code>, find the entry with original name
+      <code>ooi_hr4000.inf</code>, note its published name (for example <code>oem10.inf</code>), and run <code>pnputil /delete-driver oem10.inf /uninstall</code>.</li>
+  <li>Your settings are kept in <span class="file">settings.json</span> in the app folder (created when you close the app). Delete it to go back to the defaults.</li>
+</ul>
+
+<h2>14. What is in the folder</h2>
+<table>
+  <tr><th style="width:40%">File</th><th>Purpose</th></tr>
+  <tr><td><span class="file">READ ME FIRST.txt</span></td><td>Short setup instructions.</td></tr>
+  <tr><td><span class="file">Ocean Spectrometer Live - Guide.pdf</span></td><td>This guide.</td></tr>
+  <tr><td><span class="file">Install requirements.bat</span></td><td>Installs the Python packages (setup step 3).</td></tr>
+  <tr><td><span class="file">Install HR4000 driver (run once).bat</span></td><td>Installs the USB driver (setup step 4). The driver files are in <span class="file">driver\</span>.</td></tr>
+  <tr><td><span class="file">Make desktop shortcut.bat</span></td><td>Puts a shortcut on your desktop.</td></tr>
+  <tr><td><span class="file">Ocean Spectrometer Live.bat</span></td><td>Starts the app.</td></tr>
+  <tr><td><span class="file">Ocean Spectrometer Live (demo).bat</span></td><td>Starts the app with a simulated HR4000.</td></tr>
+  <tr><td><span class="file">app.py</span>, <span class="file">spectro.py</span>, <span class="file">acquire.py</span></td><td>The program (Python): window, spectrometer access and calculations, measuring thread.</td></tr>
+  <tr><td><span class="file">requirements.txt</span>, <span class="file">ocean_live.ico</span>, <span class="file">VERSION.txt</span></td><td>Package list, icon, and the package build date.</td></tr>
+  <tr><td><span class="file">logs\</span> (created on first save)</td><td>Your saved spectra, graphs and trends.</td></tr>
+</table>
+
+</body>
+</html>
