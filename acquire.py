@@ -78,14 +78,18 @@ class Acquirer:
                         self._applied_int = p["int_us"]
                         # the first spectrum after an integration-time change can still carry
                         # the old exposure, so read it and throw it away
-                        dev.intensities(p["edark"], p["nonlin"])
+                        dev.read(p["edark"], p["nonlin"])
                     t_start = time.time()
                     want = max(1, int(p["avg"]))
                     acc = None
+                    sat = None
+                    offset = 0.0
                     n = 0
                     for _ in range(want):
-                        y = dev.intensities(p["edark"], p["nonlin"])
+                        y, s, off = dev.read(p["edark"], p["nonlin"])
                         acc = np.array(y, dtype=float) if acc is None else acc + y
+                        sat = np.array(s, dtype=bool) if sat is None else (sat | s)
+                        offset += off
                         n += 1
                         if not self._wanted() or self.params is not p:
                             break
@@ -103,6 +107,8 @@ class Acquirer:
                 "avg": n,
                 "edark": p["edark"],
                 "nonlin": p["nonlin"],
+                "saturated": sat,          # per pixel: saturated in any of the averaged scans
+                "offset": offset / n,      # electronic offset (counts) in the uncorrected readings
             }
             with self._slot:
                 self._latest = (acc / n, info)

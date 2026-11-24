@@ -121,6 +121,8 @@ def describe_device(dev) -> str:
 
 # ---------------------------------------------------------------- devices
 
+SATURATION = 0.98  # uncorrected counts at or above this fraction of full scale count as saturated
+
 
 class SpectrometerBase:
     """What the GUI needs from a spectrometer."""
@@ -146,6 +148,16 @@ class SpectrometerBase:
     def electric_dark_level(self, raw) -> float:
         """Electronic offset in an uncorrected spectrum (mean of the covered pixels), or 0 if unknown."""
         return 0.0
+
+    def read(self, dark: bool = False, nonlin: bool = False):
+        """One spectrum: (counts with the requested corrections, per-pixel saturated flags, offset).
+
+        Saturation must be judged on the detector's uncorrected counts: after electric dark
+        correction a saturated pixel reads full scale minus the offset (thousands of counts at long
+        integration times) and would look unsaturated.
+        """
+        y = np.asarray(self.intensities(dark, nonlin), dtype=float)
+        return y, y >= SATURATION * self.max_intensity, 0.0
 
     def close(self) -> None:
         pass
@@ -203,6 +215,25 @@ class OceanSpectrometer(SpectrometerBase):
         idx = [i for i in idx if 0 <= i < raw.size]
         return float(np.mean(raw[idx])) if idx else 0.0
 
+    def read(self, dark: bool = False, nonlin: bool = False):
+        """Uncorrected counts from the spectrometer, saturation flagged on those, then the same
+        corrections seabreeze's Spectrometer.intensities() applies (electric dark offset = mean of
+        the covered pixels; nonlinearity polynomial applied to the offset-free counts)."""
+        raw = np.asarray(self._spec.intensities(correct_dark_counts=False, correct_nonlinearity=False),
+                         dtype=float)
+        saturated = raw >= SATURATION * self.max_intensity
+        dark = dark and self.supports_dark
+        nonlin = nonlin and self.supports_nonlin
+        offset = self.electric_dark_level(raw)
+        out = raw.copy()
+        if dark or nonlin:
+            out = out - offset
+        if nonlin:
+            out = out / np.polyval(self._spec._nc, out)
+        if nonlin and not dark:
+            out = out + offset
+        return out, saturated, offset
+
     def close(self) -> None:
         try:
             self._spec.close()
@@ -256,7 +287,7 @@ class DemoSpectrometer(SpectrometerBase):
         self.sample_in = True
         self.shutter_closed = False
         self.sample_conc: float | None = None
-        self._dark_level = 95.0
+        self._dark_level = 1000.0  # electronic offset (counts) plus ~800 counts per second of integration
         # what the demo "EEPROM" reports: true wavelength + 0.30 nm + 0.06 nm per 100 nm above 600
         self._wl_reported = wl + 0.30 + 0.0006 * (wl - 600.0)
 
@@ -267,8 +298,13 @@ class DemoSpectrometer(SpectrometerBase):
         lo, hi = self.int_limits_us
         self._int_us = int(min(max(us, lo), hi))
 
-    def electric_dark_level(self, raw) -> float:
-        return self._dark_level + 40.0 * self._int_us / 1e6
+    def electric_dark_level(self, raw=None) -> float:
+        return self._dark_level + 800.0 * self._int_us / 1e6
+
+    def read(self, dark: bool = False, nonlin: bool = False):
+        raw = self.intensities(dark=False)
+        offset = self.electric_dark_level()
+        return (raw - offset if dark else raw), raw >= SATURATION * self.max_intensity, offset
 
     def absorbance_now(self, t: float | None = None) -> np.ndarray:
         """True absorbance of the demo sample (decays with a 90 s time constant)."""
@@ -293,10 +329,10 @@ class DemoSpectrometer(SpectrometerBase):
         signal = signal * (seconds / 0.1)
         shot = self._rng.normal(0.0, 1.0, self.pixels) * np.sqrt(np.maximum(signal, 0.0) * 0.6)
         read = self._rng.normal(0.0, 6.0, self.pixels)
-        counts = signal + shot + read + self._dark_level + 40.0 * seconds
+        counts = signal + shot + read + self.electric_dark_level()
         counts = np.clip(np.round(counts), 0, self.max_intensity)
         if dark:
-            counts = counts - (self._dark_level + 40.0 * seconds)
+            counts = counts - self.electric_dark_level()
         # pace like hardware: one integration per read (capped so the demo stays responsive)
         time.sleep(min(seconds, 0.5) + 0.004)
         return counts
@@ -325,7 +361,8 @@ def working_mask(wl, source: str) -> np.ndarray:
 
 
 def suggest_integration_us(current_us: int, raw, mask, max_intensity: float, limits_us,
-                           target: float = 0.75, offset: float = 0.0) -> tuple[int, str]:
+                           target: float = 0.75, offset: float = 0.0, corrected: bool = False,
+                           saturated=None) -> tuple[int, str]:
     """Integration time that brings the brightest pixel inside mask to `target` of full scale.
 
     Only the light signal grows with integration time, not the detector's electronic offset, so
@@ -334,20 +371,24 @@ def suggest_integration_us(current_us: int, raw, mask, max_intensity: float, lim
     the time is cut to a third and the user tries again. Returns (new integration time in us, explanation).
     """
     raw = np.asarray(raw, dtype=float)
-    sel = raw[np.asarray(mask, dtype=bool)]
+    mask = np.asarray(mask, dtype=bool)
+    sel = raw[mask]
     lo, hi = limits_us
     if sel.size == 0:
         return current_us, "no pixels in the working range"
     peak = float(np.nanmax(sel))
-    if peak >= 0.98 * max_intensity:
+    detector_peak = peak + offset if corrected else peak  # what the detector itself read
+    is_saturated = (bool(np.any(np.asarray(saturated, dtype=bool)[mask])) if saturated is not None
+                    else detector_peak >= SATURATION * max_intensity)
+    if is_saturated:
         new = int(max(lo, current_us / 3))
         return new, "saturated in the working range: shortened, click again to fine-tune"
-    signal = peak - offset
+    signal = detector_peak - offset
     if signal < 0.01 * max_intensity:
         return current_us, "almost no light in the working range (is the lamp on and the fiber connected?)"
     new = int(round(current_us * (target * max_intensity - offset) / signal))
     clipped = int(min(max(new, lo), hi))
-    note = f"brightest point in range was {100 * peak / max_intensity:.0f}% of full scale"
+    note = f"brightest point in range was {100 * detector_peak / max_intensity:.0f}% of full scale"
     if clipped != new:
         note += "; limited by the spectrometer's integration range"
     return clipped, note

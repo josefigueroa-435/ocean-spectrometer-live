@@ -133,6 +133,66 @@ class TestLightSource(unittest.TestCase):
         self.assertIn("limited", note)
 
 
+class FakeSeabreeze:
+    """Stands in for seabreeze's Spectrometer: uncorrected counts, covered pixels, nonlinearity poly."""
+
+    def __init__(self, raw, dp, nc=None):
+        self.raw, self._dp, self._nc = np.asarray(raw, dtype=float), dp, nc
+
+    def intensities(self, correct_dark_counts=False, correct_nonlinearity=False):
+        """seabreeze's own algorithm, for comparison."""
+        out = self.raw.copy()
+        if correct_nonlinearity or correct_dark_counts:
+            off = np.mean(out[self._dp]) if self._dp else 0.0
+            out -= off
+        if correct_nonlinearity and self._nc is not None:
+            out = out / np.polyval(self._nc, out)
+        if correct_nonlinearity and not correct_dark_counts:
+            out += off
+        return out
+
+
+class TestReadAndSaturation(unittest.TestCase):
+    def make(self, raw, dp=(0, 1, 2), nc=None):
+        dev = object.__new__(spectro.OceanSpectrometer)
+        dev._spec = FakeSeabreeze(raw, list(dp), nc)
+        dev.max_intensity = 16383.0
+        dev.supports_dark = True
+        dev.supports_nonlin = nc is not None
+        return dev
+
+    def test_saturation_seen_through_dark_correction(self):
+        raw = np.array([2000, 2000, 2000, 5000, 16383, 9000], dtype=float)  # offset 2000, pixel 4 saturated
+        y, sat, off = self.make(raw).read(dark=True)
+        self.assertEqual(off, 2000)
+        np.testing.assert_allclose(y, raw - 2000)
+        self.assertEqual(y[4], 14383)                      # < 98% of 16383 after correction...
+        self.assertEqual(sat.tolist(), [False] * 4 + [True, False])  # ...but flagged saturated
+
+    def test_corrections_match_seabreeze(self):
+        raw = np.array([1500, 1520, 1480, 3000, 9000, 16000], dtype=float)
+        nc = np.poly1d([1e-9, -2e-6, 1.0])  # gentle nonlinearity
+        for dark in (False, True):
+            for nonlin in (False, True):
+                dev = self.make(raw, nc=nc)
+                y, _, _ = dev.read(dark=dark, nonlin=nonlin)
+                expected = dev._spec.intensities(correct_dark_counts=dark, correct_nonlinearity=nonlin)
+                np.testing.assert_allclose(y, expected, err_msg=f"dark={dark} nonlin={nonlin}")
+
+    def test_suggest_with_flags(self):
+        raw = np.array([0, 0, 12000, 0], dtype=float)   # corrected counts, offset 2000 -> detector 14000
+        mask = np.array([True, True, True, True])
+        us, note = spectro.suggest_integration_us(1_000_000, raw, mask, 16383.0, (10, 10**9),
+                                                  offset=2000, corrected=True)
+        self.assertAlmostEqual(us, 1_000_000 * (0.75 * 16383 - 2000) / 12000, delta=2)
+        self.assertIn("85%", note)                       # 14000/16383 of the detector
+        sat = np.array([False, False, True, False])
+        us, note = spectro.suggest_integration_us(900_000, raw, mask, 16383.0, (10, 10**9),
+                                                  offset=2000, corrected=True, saturated=sat)
+        self.assertEqual(us, 300_000)
+        self.assertIn("saturated", note)
+
+
 class TestDemo(unittest.TestCase):
     def test_shape_and_limits(self):
         d = spectro.DemoSpectrometer(seed=1)
@@ -396,7 +456,7 @@ class TestGui(unittest.TestCase):
                 t = time.time()
                 pump(8, lambda: a.info and a.info["t_start"] > t and a.info["int_us"] == a.acq.params["int_us"])
                 mask = a._work_mask()
-                pct = 100 * float(np.max(a.raw[mask])) / a.dev.max_intensity
+                pct = 100 * (float(np.max(a.raw[mask])) + (a.info['offset'] if a.info['edark'] else 0)) / a.dev.max_intensity  # how full the detector is
                 self.assertAlmostEqual(pct, 75, delta=8)
                 # same with electric dark correction off (raw counts include the electronic offset)
                 a.v_edark.set(False)
@@ -408,10 +468,22 @@ class TestGui(unittest.TestCase):
                 a.auto_integration()
                 t = time.time()
                 pump(8, lambda: a.info and a.info["t_start"] > t and a.info["int_us"] == a.acq.params["int_us"])
-                pct = 100 * float(np.max(a.raw[a._work_mask()])) / a.dev.max_intensity
+                pct = 100 * (float(np.max(a.raw[a._work_mask()])) + (a.info['offset'] if a.info['edark'] else 0)) / a.dev.max_intensity
                 self.assertAlmostEqual(pct, 75, delta=8)
                 a.v_edark.set(True)
                 a.apply_params()
+                # regression (found on the real HR4000): at long integration times electric dark correction
+                # subtracts thousands of counts, so a saturated pixel reads well under full scale; it must
+                # still be reported as saturated, and Set must shorten the time
+                a.v_int.set("2500")
+                a.apply_params()
+                t = time.time()
+                pump(10, lambda: a.info and a.info["t_start"] > t and a.info["int_us"] == 2_500_000 and a.info["edark"])
+                corrected_max = float(np.max(a.raw[a._work_mask()]))
+                self.assertLess(corrected_max, 0.98 * a.dev.max_intensity)  # looks unsaturated after correction...
+                self.assertIn("SATURATED", a.l_sat.cget("text"))           # ...but is reported as saturated
+                a.auto_integration()
+                self.assertLessEqual(a.acq.params["int_us"], 2_500_000 // 3 + 1)
                 self.assertEqual(a._meta()["Light source"], "Halogen (visible-NIR)")
                 a.v_source.set("Full range (any source)")
                 a.set_light_source()

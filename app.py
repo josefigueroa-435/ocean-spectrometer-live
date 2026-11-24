@@ -707,11 +707,16 @@ class App:
             peak = float(np.max(self.raw[mask]))
             rng = spectro.LIGHT_SOURCES.get(self.v_source.get())
             where = f" in {rng[0]:.0f}-{rng[1]:.0f} nm" if rng else ""
-            if peak >= 0.98 * self.dev.max_intensity:
-                self.l_sat.configure(text=f"SATURATED{where} ({peak:.0f} counts): lower the integration time",
+            # how full the detector itself is: corrected counts plus the offset that was subtracted
+            detector_peak = peak + (p.get("offset", 0.0) if p.get("edark") else 0.0)
+            sat = p.get("saturated")
+            saturated = (bool(np.any(sat[mask])) if sat is not None and sat.shape == mask.shape
+                         else detector_peak >= spectro.SATURATION * self.dev.max_intensity)
+            if saturated:
+                self.l_sat.configure(text=f"SATURATED{where}: lower the integration time (or click Set)",
                                      style="Bad.TLabel")
             else:
-                pct = 100 * peak / self.dev.max_intensity
+                pct = 100 * detector_peak / self.dev.max_intensity
                 self.l_sat.configure(text=f"Max{where} {peak:.0f} counts ({pct:.0f}% of full scale)",
                                      style="Warn.TLabel" if pct < 10 else "TLabel")
 
@@ -837,12 +842,12 @@ class App:
         if self.dev is None or self.raw is None or self.info is None:
             self.set_status("Connect and wait for a spectrum first.", "warn")
             return
-        # with electric dark correction off the raw counts include the electronic offset, which
-        # does not grow with integration time
-        offset = 0.0 if self.info.get("edark") else self.dev.electric_dark_level(self.raw)
-        new_us, note = spectro.suggest_integration_us(self.info["int_us"], self.raw, self._work_mask(),
-                                                      self.dev.max_intensity, self.dev.int_limits_us,
-                                                      offset=offset)
+        # only the light grows with integration time, not the electronic offset; and saturation is
+        # judged on the uncorrected counts (flags from the acquisition)
+        new_us, note = spectro.suggest_integration_us(
+            self.info["int_us"], self.raw, self._work_mask(), self.dev.max_intensity, self.dev.int_limits_us,
+            offset=self.info.get("offset", 0.0), corrected=bool(self.info.get("edark")),
+            saturated=self.info.get("saturated"))
         if new_us == self.info["int_us"]:
             self.set_status(f"Integration time unchanged: {note}.", "warn")
             return
