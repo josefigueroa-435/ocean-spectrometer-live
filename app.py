@@ -225,30 +225,39 @@ class App:
         f.pack(fill="x", pady=(0, 4))
         g = ttk.Frame(f)
         g.pack(fill="x")
+        src = self.s.get("light_source")
+        self.v_source = tk.StringVar(value=src if src in spectro.LIGHT_SOURCES else DEFAULTS["light_source"])
+        ttk.Label(g, text="Light source").grid(row=4, column=0, sticky="w", pady=(2, 0))
+        cb = ttk.Combobox(g, textvariable=self.v_source, values=list(spectro.LIGHT_SOURCES),
+                          state="readonly", width=21)
+        cb.grid(row=4, column=1, columnspan=2, sticky="e", pady=(2, 0))
+        cb.bind("<<ComboboxSelected>>", lambda _e: self.set_light_source())
         ttk.Label(g, text="Integration time (ms)").grid(row=0, column=0, sticky="w")
-        e = ttk.Entry(g, textvariable=self.v_int, width=9)
+        e = ttk.Entry(g, textvariable=self.v_int, width=8)
         e.grid(row=0, column=1, sticky="e", padx=(4, 0))
+        ttk.Button(g, text="Set", width=4, command=self.auto_integration).grid(row=0, column=2, sticky="e",
+                                                                               padx=(4, 0))
         e.bind("<Return>", lambda _e: self.apply_params())
         e.bind("<FocusOut>", lambda _e: self.apply_params())
-        ttk.Label(g, text="Scans to average").grid(row=1, column=0, sticky="w", pady=(4, 0))
+        ttk.Label(g, text="Scans to average").grid(row=1, column=0, sticky="w", pady=(2, 0))
         sp = ttk.Spinbox(g, from_=1, to=1000, textvariable=self.v_avg, width=7, command=self.apply_params)
-        sp.grid(row=1, column=1, sticky="e", pady=(4, 0))
+        sp.grid(row=1, column=1, columnspan=2, sticky="e", pady=(2, 0))
         sp.bind("<Return>", lambda _e: self.apply_params())
         sp.bind("<FocusOut>", lambda _e: self.apply_params())
-        ttk.Label(g, text="Boxcar half-width (px)").grid(row=2, column=0, sticky="w", pady=(4, 0))
+        ttk.Label(g, text="Boxcar half-width (px)").grid(row=2, column=0, sticky="w", pady=(2, 0))
         sp = ttk.Spinbox(g, from_=0, to=100, textvariable=self.v_box, width=7, command=self._redraw)
-        sp.grid(row=2, column=1, sticky="e", pady=(4, 0))
+        sp.grid(row=2, column=1, columnspan=2, sticky="e", pady=(2, 0))
         sp.bind("<Return>", lambda _e: self._redraw())
         sp.bind("<FocusOut>", lambda _e: self._redraw())
         g.columnconfigure(0, weight=1)
         self.c_edark = ttk.Checkbutton(f, text="Electric dark correction", variable=self.v_edark,
                                        command=self.apply_params)
-        self.c_edark.pack(anchor="w", pady=(4, 0))
+        self.c_edark.pack(anchor="w", pady=(2, 0))
         self.c_nonlin = ttk.Checkbutton(f, text="Nonlinearity correction", variable=self.v_nonlin,
                                         command=self.apply_params)
         self.c_nonlin.pack(anchor="w")
         row = ttk.Frame(f)
-        row.pack(fill="x", pady=(6, 0))
+        row.pack(fill="x", pady=(3, 0))
         self.b_run = ttk.Button(row, text="Run", command=self.toggle_run, state="disabled")
         self.b_run.pack(side="left")
         self.b_single = ttk.Button(row, text="Single", command=self.single_shot, state="disabled")
@@ -256,7 +265,7 @@ class App:
         self.l_rate = ttk.Label(row, text="")
         self.l_rate.pack(side="right")
         self.l_sat = ttk.Label(f, text="", style="Big.TLabel")
-        self.l_sat.pack(anchor="w", pady=(4, 0))
+        self.l_sat.pack(anchor="w", pady=(2, 0))
 
         # ---- mode
         f = ttk.LabelFrame(left, text="Mode", padding=(6, 3))
@@ -311,10 +320,10 @@ class App:
                         command=self._demo_controls).pack(side="left")
         ttk.Radiobutton(row, text="Hg-Ar lamp", value="lines", variable=self.v_lamp,
                         command=self._demo_controls).pack(side="left", padx=6)
+        ttk.Checkbutton(row, text="Shutter closed", variable=self.v_shutter,
+                        command=self._demo_controls).pack(side="left", padx=(4, 0))
         ttk.Checkbutton(self.demo_frame, text="Sample in beam (absorbs near 520 nm, fading)",
                         variable=self.v_sample_in, command=self._demo_controls).pack(anchor="w")
-        ttk.Checkbutton(self.demo_frame, text="Shutter closed (for storing dark)",
-                        variable=self.v_shutter, command=self._demo_controls).pack(anchor="w")
 
         # ---- notebook with spectrum + trend
         self.nb = ttk.Notebook(right)
@@ -352,14 +361,6 @@ class App:
         ttk.Checkbutton(bar, text="Auto-scale Y", variable=self.v_autoy, command=self._redraw).pack(
             side="left", padx=10)
         ttk.Button(bar, text="Full range", command=self.full_range).pack(side="left")
-        ttk.Label(bar, text="Light source").pack(side="left", padx=(18, 4))
-        src = self.s.get("light_source")
-        self.v_source = tk.StringVar(value=src if src in spectro.LIGHT_SOURCES else DEFAULTS["light_source"])
-        cb = ttk.Combobox(bar, textvariable=self.v_source, values=list(spectro.LIGHT_SOURCES),
-                          state="readonly", width=22)
-        cb.pack(side="left")
-        cb.bind("<<ComboboxSelected>>", lambda _e: self.set_light_source())
-        ttk.Button(bar, text="Set integration", command=self.auto_integration).pack(side="left", padx=4)
         readout = ttk.Frame(tab_spec, padding=(6, 0, 6, 2))
         readout.pack(side="top", fill="x")
         self.l_peak = ttk.Label(readout, text="Peak: -", style="Big.TLabel")
@@ -827,7 +828,7 @@ class App:
             self._update_rate()
         if rng:
             self.set_status(f"{self.v_source.get()}: working range {rng[0]:.0f}-{rng[1]:.0f} nm. Peak, auto-scale and "
-                            "the max-counts readout use only this range. 'Set integration' fills it to ~75%.", "good")
+                            "the max-counts readout use only this range. 'Set' (next to Integration time) fills it to ~75%.", "good")
         else:
             self.set_status("Light source: full range.")
 

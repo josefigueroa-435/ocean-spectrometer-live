@@ -161,13 +161,12 @@ A few seconds after it starts, it also checks for a newer version (section 14).<
 <figure><img src="img/overview.png" alt="Main window with numbered areas"><figcaption>The main window, showing the demo spectrometer with the halogen lamp in Scope mode.</figcaption></figure>
 <table class="callouts">
   <tr><td>1</td><td><b>Spectrometer</b>: the list of connected spectrometers, with Refresh, Connect and Disconnect, and the details of the connected unit.</td></tr>
-  <tr><td>2</td><td><b>Acquisition</b>: integration time, averaging, smoothing, corrections, Pause/Run and Single, the measurement rate, and the signal level / saturation warning (section 5).</td></tr>
+  <tr><td>2</td><td><b>Acquisition</b>: integration time (with <b>Set</b>), averaging, smoothing, <b>Light source</b>, corrections, Pause/Run and Single, the measurement rate, and the signal level / saturation warning (section 5).</td></tr>
   <tr><td>3</td><td><b>Mode</b>: Scope, Scope - dark, Absorbance and Transmittance, plus <b>Store dark</b> and <b>Store reference</b> and their status (section 6).</td></tr>
   <tr><td>4</td><td><b>Save</b>: sample name, Save CSV, Save graph, the <b>Data folder</b> menu (open it, or switch to a shared folder), and Hold / Overlay file / Clear held to compare traces (section 11).</td></tr>
   <tr><td>5</td><td><b>Demo spectrometer</b>: only shown in the demo. Lamp, sample and shutter switches.</td></tr>
   <tr><td>6</td><td><b>Plot toolbar</b>: Home (reset the view), Back/Forward, <b>Pan</b> (hand), <b>Zoom</b> (magnifier: drag a box), plot margins and Save image.
-      To the right, <b>Auto-scale Y</b> keeps the vertical axis fitted to the data, <b>Full range</b> shows the whole wavelength range again, and
-      <b>Light source</b> / <b>Set integration</b> set the app up for your lamp (section 5).</td></tr>
+      To the right, <b>Auto-scale Y</b> keeps the vertical axis fitted to the data, and <b>Full range</b> shows the whole wavelength range again.</td></tr>
   <tr><td>7</td><td><b>Peak in view</b>: wavelength, height and FWHM (full width at half maximum) of the largest peak <i>inside the visible range</i>.
       Zoom in on a band to measure that band. At the far right, <b>Cursor</b> shows the wavelength and value under the mouse pointer.</td></tr>
   <tr><td>8</td><td><b>Live spectrum</b>. The red triangle marks the peak.</td></tr>
@@ -195,7 +194,7 @@ A few seconds after it starts, it also checks for a newer version (section 14).<
   <tr><td><b>spectra/s</b></td><td>How many averaged spectra per second the spectrometer delivers. The screen refreshes several times a second, however fast that is.</td></tr>
 </table>
 <h3>Light source preset</h3>
-<p>Pick your lamp in <b>Light source</b> (Spectrum tab toolbar). The app then works in the range where that lamp actually gives light:</p>
+<p>Pick your lamp in <b>Light source</b> (in the Acquisition panel). The app then works in the range where that lamp actually gives light:</p>
 <table>
   <tr><th style="width:32%">Light source</th><th style="width:22%">Working range</th><th>Typical use</th></tr>
   <tr><td>Full range (any source)</td><td>whole spectrometer</td><td>Emission, LEDs, lasers, anything else</td></tr>
@@ -206,11 +205,11 @@ A few seconds after it starts, it also checks for a newer version (section 14).<
 <ul>
   <li>The plot zooms to the working range, and <b>Peak in view</b>, auto-scale and the <b>Max counts / SATURATED</b> line only look inside it. For example, the deuterium lamp's very bright
       656 nm line no longer dominates when you work in the UV.</li>
-  <li><b>Set integration</b> picks the integration time that puts the brightest point <i>inside the working range</i> at about 75% of full scale. If the range is saturated it
+  <li>The <b>Set</b> button next to Integration time picks the integration time that puts the brightest point <i>inside the working range</i> at about 75% of full scale. If the range is saturated it
       shortens the time a lot; click it again to fine-tune. It also tells you when there is almost no light in the range (lamp off, shutter closed, fiber loose).</li>
   <li>Saved files record the light source. You get a warning when a trend or concentration wavelength lies outside the lamp's range.</li>
   <li>The ranges are approximate working ranges, not hard limits: you can still zoom anywhere, and <b>Full range</b> shows everything.</li>
-  <li>After <b>Set integration</b> changes the time, store the dark and reference again.</li>
+  <li>After <b>Set</b> changes the time, store the dark and reference again.</li>
 </ul>
 
 <div class="box">The first spectrum after you change the integration time is thrown away automatically, because it can still carry the old exposure.
@@ -241,7 +240,7 @@ The app reminds you (section 6).</div>
 <ol>
   <li><b>Warm up the lamp.</b> Turn the light source on and let it stabilise (check its manual; often 15-30 minutes).</li>
   <li><b>Put the blank in</b> (cuvette with solvent only). Select <b>Scope</b>, and pick your lamp in <b>Light source</b>.</li>
-  <li>Click <b>Set integration</b> (or set the time by hand so the highest point in the range is at 50-85% of full scale), and set <b>Scans to average</b> (for example 5).</li>
+  <li>Click <b>Set</b> next to Integration time (or set the time by hand so the highest point in the range is at 50-85% of full scale), and set <b>Scans to average</b> (for example 5).</li>
   <li><b>Block the light</b> (shutter closed or fiber capped) and click <b>Store dark</b>. Wait until the Dark label turns green.</li>
   <li><b>Unblock the light</b> with the blank still in, and click <b>Store reference</b>. Wait until the Reference label turns green.</li>
   <li>Select <b>Absorbance</b>. With the blank still in, the line should be flat near 0. If not, store the dark and reference again.</li>
@@ -445,7 +444,7 @@ wavelength_nm,raw_counts,dark_counts,reference_counts,Absorbance [Absorbance (AU
   <tr><td>Spectrometer panel: <i>"Windows has a driver ... but it could not be opened."</i></td><td>Another program is using it. Close OceanView, SpectraSuite, or a second copy of this app, then replug and click <b>Refresh</b>.</td></tr>
   <tr><td>Status bar (red): <i>"Acquisition stopped: ..."</i></td><td>Usually the USB cable came loose. Replug, click <b>Refresh</b>, then <b>Connect</b>.</td></tr>
   <tr><td><b>SATURATED</b> in red.</td><td>Lower the integration time, or reduce the light (fiber further away, attenuator, narrower slit).</td></tr>
-  <tr><td>Set integration says "almost no light in the working range".</td><td>The lamp for that range is off or its light isn't reaching the fiber: check the lamp switch,
+  <tr><td><b>Set</b> says "almost no light in the working range".</td><td>The lamp for that range is off or its light isn't reaching the fiber: check the lamp switch,
       the shutter, and both fibers on the cuvette holder. Check that the Light source matches the lamp that is on.</td></tr>
   <tr><td>Max counts in orange (under 10% of full scale).</td><td>Too little light: raise the integration time, check the fiber connections, and check that the lamp is on and the shutter open.</td></tr>
   <tr><td>Flat line near zero.</td><td>Light is not reaching the spectrometer: shutter closed, fiber unplugged, or lamp off.</td></tr>
