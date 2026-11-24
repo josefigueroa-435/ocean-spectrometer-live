@@ -56,9 +56,27 @@ still plotted but are left out of the peak search and the Y auto-scale.
 - Electric dark correction subtracts the mean of the HR4000's optically masked pixels.
   Nonlinearity correction uses the coefficients stored in the spectrometer.
 
+## Publishing updates (every installed copy picks them up)
+
+The app is a git repository with GitHub remote `josefigueroa-435/ocean-spectrometer-live` (public).
+After changing the app and committing:
+
+    python tools/publish.py 1.1.0 "One sentence about what changed"
+
+It runs the tests, bumps `version.py`, re-prints the PDF guide, checks that no personal data is in the
+repository, commits the release, writes `release.json` (the release commit plus a SHA-256 for every
+shipped file), commits that, tags `v1.1.0`, pushes, and builds the hand-over zip in `dist/`.
+
+Installed copies read `release.json` from the `main` branch at start-up (`updater.py`). When the version
+is newer, they show an "Update now" bar. They download only the changed files from that exact
+commit, verify each one, back up what they replace in `.update_backup/`, then restart. Logs and
+settings are never touched. Ordinary commits and pushes do not reach users: only `release.json`
+does, and only `publish.py` writes it. A development copy (a folder with `.git`) never updates itself.
+`OCEAN_UPDATE_BASE` points the updater at a local copy of the repository layout for testing.
+
 ## Handing it to someone else
 
-`python tools/build_package.py OUT_DIR` builds `Ocean_Spectrometer_Live_<date>.zip`: the program, the HR4000
+`python tools/build_package.py OUT_DIR` (also run by publish.py) builds `Ocean_Spectrometer_Live_<version>.zip`: the program, the HR4000
 driver, the .bat helpers (`Install requirements.bat`, `Make desktop shortcut.bat`, ...), `READ ME FIRST.txt` and
 `Ocean Spectrometer Live - Guide.pdf` (printed from `docs/Ocean_Spectrometer_Live_Guide.html` with Edge).
 It runs the tests on the packaged copy first and refuses to build if logs, settings or personal paths would go in.
@@ -67,5 +85,7 @@ Guide screenshots in `docs/img` come from the demo spectrometer.
 ## Files
 
 `spectro.py` (device access, demo spectrometer, spectral math, CSV), `acquire.py` (acquisition
-thread), `app.py` (window), `test_spectro.py` (`python -m unittest test_spectro`, 16 tests, no
-hardware needed), `driver/` (Ocean's HR4000 INF + catalog + co-installers), `tools/make_icon.py`.
+thread), `app.py` (window), `updater.py` + `version.py` (self-update), `test_spectro.py` and
+`test_updater.py` (`python -m unittest test_spectro test_updater`, 24 tests, no hardware or network
+needed), `driver/` (Ocean's HR4000 INF + catalog + co-installers), `tools/` (`shipping.py`: the list of
+shipped files; `publish.py`; `build_package.py`; `make_icon.py`), `release.json` (the published release).

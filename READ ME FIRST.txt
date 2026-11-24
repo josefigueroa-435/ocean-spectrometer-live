@@ -72,6 +72,15 @@ Saved files go into the "logs" folder in this folder (button "Logs folder"):
   logs\trends   - values over time from the Trend tab (CSV)
 
 
+UPDATES
+-------
+The program updates itself. When a newer version exists, a yellow bar appears at
+the top of the window a few seconds after it starts: click "Update now". It
+downloads the new files, checks them, and restarts. Your saved files and settings
+are kept. Without internet, nothing happens and the program works as usual.
+To check by hand, click the version number at the bottom right.
+
+
 IF SOMETHING IS WRONG
 ---------------------
 - The left panel says what Windows sees and what to do; read it first.

@@ -64,6 +64,7 @@
   <li>Saving, files and Excel</li>
   <li>Keyboard shortcuts</li>
   <li>Troubleshooting</li>
+  <li>Updates</li>
   <li>Good to know</li>
   <li>What is in the folder</li>
 </ol>
@@ -152,7 +153,8 @@ absorbs near 520 nm and slowly fades, so the Trend tab has something to show. Ev
       calibration stored inside your spectrometer, so it depends on the grating your unit was built with.</li>
 </ol>
 <p>If no spectrometer is found, the Spectrometer panel says why and what to do next. See section 12.</p>
-<p>The app remembers your settings (integration time, averaging, mode, sample name, trend wavelengths) for next time.</p>
+<p>The app remembers your settings (integration time, averaging, mode, sample name, trend wavelengths) for next time.
+A few seconds after it starts, it also checks for a newer version (section 13).</p>
 
 <h2 class="break">4. A tour of the window</h2>
 <figure><img src="img/overview.png" alt="Main window with numbered areas"><figcaption>The main window, showing the demo spectrometer with the halogen lamp in Scope mode.</figcaption></figure>
@@ -352,10 +354,30 @@ wavelength_nm,raw_counts,dark_counts,reference_counts,Absorbance [Absorbance (AU
   <tr><td>Absorbance is noisy, negative or drifting.</td><td>Store the dark and reference again with the blank in, and check that the reference was not saturated and that the lamp is warmed up.
       Make sure no light leaked in while storing the dark.</td></tr>
   <tr><td>Dark/Reference labels are orange ("store again").</td><td>Settings changed after storing them. Store both again.</td></tr>
+  <tr><td>"Update failed" in the yellow bar.</td><td>Nothing was changed, and the app keeps working as before. Check the internet connection and click <b>Try again</b>.
+      If it says Windows would not let it replace its files, the app folder is somewhere protected (such as Program Files): move the folder to Documents.</td></tr>
   <tr><td>Still no connection after all of the above.</td><td>Try the other USB backend: in Command Prompt in the app folder run <code>py app.py --backend pyseabreeze</code>.</td></tr>
 </table>
 
-<h2>13. Good to know</h2>
+<h2 class="break">13. Updates</h2>
+<p>The app keeps itself up to date. A few seconds after it starts (with internet), it checks the project's page on GitHub.
+When a newer version exists, a yellow bar appears at the top of the window:</p>
+<figure><img src="img/update_bar.png" alt="Update available bar"><figcaption>The update bar, with a short description of what changed.</figcaption></figure>
+<ul>
+  <li>Click <b>Update now</b> and confirm. Measuring pauses (and a running trend is stopped and saved). The new files download,
+      each one is checked against its published checksum, and the app restarts on the new version. It takes a few seconds.</li>
+  <li><b>Your data is never touched:</b> saved spectra, graphs, trends (<span class="file">logs</span>) and your settings stay as they are.
+      Only the program's own files are replaced.</li>
+  <li>If anything goes wrong (no internet, an interrupted download), <b>nothing is changed</b> and you can try again later.
+      The files that the last update replaced are kept in the hidden folder <span class="file">.update_backup</span>.</li>
+  <li>Click <b>Later</b> to hide the bar for now. It comes back the next time the app starts.</li>
+  <li>To check by hand, click the version number at the right end of the status bar (<b>v1.0.0 (check for updates)</b>).</li>
+  <li>If an update adds a Python package, the app installs it during the update. This needs internet and can take a minute.</li>
+  <li>Without internet the check simply does nothing, and the app works normally.</li>
+</ul>
+<p class="muted">The update check downloads one small file (<code>release.json</code>) from GitHub and sends nothing about you or your measurements.</p>
+
+<h2>14. Good to know</h2>
 <ul>
   <li><b>The app is read-only for the instrument.</b> It only reads spectra and sets the integration time. It never changes the wavelength or
       nonlinearity calibration stored in the spectrometer, so nothing you do in the app can damage the calibration.</li>
@@ -365,9 +387,10 @@ wavelength_nm,raw_counts,dark_counts,reference_counts,Absorbance [Absorbance (AU
   <li><b>Removing the driver:</b> in an administrator Command Prompt run <code>pnputil /enum-drivers</code>, find the entry with original name
       <code>ooi_hr4000.inf</code>, note its published name (for example <code>oem10.inf</code>), and run <code>pnputil /delete-driver oem10.inf /uninstall</code>.</li>
   <li>Your settings are kept in <span class="file">settings.json</span> in the app folder (created when you close the app). Delete it to go back to the defaults.</li>
+  <li>The project lives at <b>github.com/josefigueroa-435/ocean-spectrometer-live</b>, where updates are published.</li>
 </ul>
 
-<h2>14. What is in the folder</h2>
+<h2>15. What is in the folder</h2>
 <table>
   <tr><th style="width:40%">File</th><th>Purpose</th></tr>
   <tr><td><span class="file">READ ME FIRST.txt</span></td><td>Short setup instructions.</td></tr>
@@ -377,9 +400,10 @@ wavelength_nm,raw_counts,dark_counts,reference_counts,Absorbance [Absorbance (AU
   <tr><td><span class="file">Make desktop shortcut.bat</span></td><td>Puts a shortcut on your desktop.</td></tr>
   <tr><td><span class="file">Ocean Spectrometer Live.bat</span></td><td>Starts the app.</td></tr>
   <tr><td><span class="file">Ocean Spectrometer Live (demo).bat</span></td><td>Starts the app with a simulated HR4000.</td></tr>
-  <tr><td><span class="file">app.py</span>, <span class="file">spectro.py</span>, <span class="file">acquire.py</span></td><td>The program (Python): window, spectrometer access and calculations, measuring thread.</td></tr>
-  <tr><td><span class="file">requirements.txt</span>, <span class="file">ocean_live.ico</span>, <span class="file">VERSION.txt</span></td><td>Package list, icon, and the package build date.</td></tr>
+  <tr><td><span class="file">app.py</span>, <span class="file">spectro.py</span>, <span class="file">acquire.py</span>, <span class="file">updater.py</span>, <span class="file">version.py</span></td><td>The program (Python): window, spectrometer access and calculations, measuring thread, self-updater, version number.</td></tr>
+  <tr><td><span class="file">requirements.txt</span>, <span class="file">ocean_live.ico</span></td><td>Package list and icon.</td></tr>
   <tr><td><span class="file">logs\</span> (created on first save)</td><td>Your saved spectra, graphs and trends.</td></tr>
+  <tr><td><span class="file">settings.json</span>, <span class="file">.update_backup\</span></td><td>Your settings (created when you close the app), and the files the last update replaced.</td></tr>
 </table>
 
 </body>
