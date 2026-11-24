@@ -143,6 +143,10 @@ class SpectrometerBase:
     def set_integration_us(self, us: int) -> None:
         raise NotImplementedError
 
+    def electric_dark_level(self, raw) -> float:
+        """Electronic offset in an uncorrected spectrum (mean of the covered pixels), or 0 if unknown."""
+        return 0.0
+
     def close(self) -> None:
         pass
 
@@ -192,6 +196,12 @@ class OceanSpectrometer(SpectrometerBase):
     def set_integration_us(self, us: int) -> None:
         lo, hi = self.int_limits_us
         self._spec.integration_time_micros(int(min(max(us, lo), hi)))
+
+    def electric_dark_level(self, raw) -> float:
+        idx = list(getattr(self._spec, "_dp", None) or [])
+        raw = np.asarray(raw, dtype=float)
+        idx = [i for i in idx if 0 <= i < raw.size]
+        return float(np.mean(raw[idx])) if idx else 0.0
 
     def close(self) -> None:
         try:
@@ -257,6 +267,9 @@ class DemoSpectrometer(SpectrometerBase):
         lo, hi = self.int_limits_us
         self._int_us = int(min(max(us, lo), hi))
 
+    def electric_dark_level(self, raw) -> float:
+        return self._dark_level + 40.0 * self._int_us / 1e6
+
     def absorbance_now(self, t: float | None = None) -> np.ndarray:
         """True absorbance of the demo sample (decays with a 90 s time constant)."""
         if self.sample_conc is not None:
@@ -312,12 +325,13 @@ def working_mask(wl, source: str) -> np.ndarray:
 
 
 def suggest_integration_us(current_us: int, raw, mask, max_intensity: float, limits_us,
-                           target: float = 0.75) -> tuple[int, str]:
+                           target: float = 0.75, offset: float = 0.0) -> tuple[int, str]:
     """Integration time that brings the brightest pixel inside mask to `target` of full scale.
 
-    Counts scale linearly with integration time (above the electronic offset). If the range is
-    saturated the true level is unknown, so the time is cut to a third and the user tries again.
-    Returns (new integration time in us, explanation).
+    Only the light signal grows with integration time, not the detector's electronic offset, so
+    `offset` (the electric-dark level, when electric dark correction is off) is taken out before
+    scaling and put back for the target. If the range is saturated the true level is unknown, so
+    the time is cut to a third and the user tries again. Returns (new integration time in us, explanation).
     """
     raw = np.asarray(raw, dtype=float)
     sel = raw[np.asarray(mask, dtype=bool)]
@@ -328,9 +342,10 @@ def suggest_integration_us(current_us: int, raw, mask, max_intensity: float, lim
     if peak >= 0.98 * max_intensity:
         new = int(max(lo, current_us / 3))
         return new, "saturated in the working range: shortened, click again to fine-tune"
-    if peak < 0.01 * max_intensity:
+    signal = peak - offset
+    if signal < 0.01 * max_intensity:
         return current_us, "almost no light in the working range (is the lamp on and the fiber connected?)"
-    new = int(round(current_us * target * max_intensity / peak))
+    new = int(round(current_us * (target * max_intensity - offset) / signal))
     clipped = int(min(max(new, lo), hi))
     note = f"brightest point in range was {100 * peak / max_intensity:.0f}% of full scale"
     if clipped != new:

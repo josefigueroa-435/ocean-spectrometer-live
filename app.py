@@ -837,8 +837,12 @@ class App:
         if self.dev is None or self.raw is None or self.info is None:
             self.set_status("Connect and wait for a spectrum first.", "warn")
             return
+        # with electric dark correction off the raw counts include the electronic offset, which
+        # does not grow with integration time
+        offset = 0.0 if self.info.get("edark") else self.dev.electric_dark_level(self.raw)
         new_us, note = spectro.suggest_integration_us(self.info["int_us"], self.raw, self._work_mask(),
-                                                      self.dev.max_intensity, self.dev.int_limits_us)
+                                                      self.dev.max_intensity, self.dev.int_limits_us,
+                                                      offset=offset)
         if new_us == self.info["int_us"]:
             self.set_status(f"Integration time unchanged: {note}.", "warn")
             return

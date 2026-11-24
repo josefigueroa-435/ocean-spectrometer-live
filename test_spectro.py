@@ -121,6 +121,11 @@ class TestLightSource(unittest.TestCase):
         us, note = spectro.suggest_integration_us(100_000, np.full(100, 5.0), mask, 16383.0, (10, 655_350_000))
         self.assertEqual(us, 100_000)                        # no light: leave it
         self.assertIn("no light", note)
+        # electric dark correction off: a 1050-count offset that does not scale with time
+        raw = np.full(100, 1050.0)
+        raw[30] = 1050.0 + 750.0                             # 750 counts of real signal
+        us, _ = spectro.suggest_integration_us(100_000, raw, mask, 16383.0, (10, 655_350_000), offset=1050.0)
+        self.assertAlmostEqual(us, 100_000 * (0.75 * 16383 - 1050) / 750, delta=2)  # lands at 75% incl. offset
         raw = np.zeros(100)
         raw[30] = 0.02 * 16383                               # 2%: would need 3.75 s; limit 1 s
         us, note = spectro.suggest_integration_us(100_000, raw, mask, 16383.0, (10, 1_000_000))
@@ -393,6 +398,20 @@ class TestGui(unittest.TestCase):
                 mask = a._work_mask()
                 pct = 100 * float(np.max(a.raw[mask])) / a.dev.max_intensity
                 self.assertAlmostEqual(pct, 75, delta=8)
+                # same with electric dark correction off (raw counts include the electronic offset)
+                a.v_edark.set(False)
+                a.apply_params()
+                a.v_int.set("20")
+                a.apply_params()
+                t = time.time()
+                pump(5, lambda: a.info and a.info["t_start"] > t and not a.info["edark"])
+                a.auto_integration()
+                t = time.time()
+                pump(8, lambda: a.info and a.info["t_start"] > t and a.info["int_us"] == a.acq.params["int_us"])
+                pct = 100 * float(np.max(a.raw[a._work_mask()])) / a.dev.max_intensity
+                self.assertAlmostEqual(pct, 75, delta=8)
+                a.v_edark.set(True)
+                a.apply_params()
                 self.assertEqual(a._meta()["Light source"], "Halogen (visible-NIR)")
                 a.v_source.set("Full range (any source)")
                 a.set_light_source()
