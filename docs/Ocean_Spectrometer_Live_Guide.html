@@ -47,7 +47,7 @@
 <div class="box">
 <b>In short:</b> install Python, run <span class="file">Install requirements.bat</span>, plug in the HR4000, run
 <span class="file">Install HR4000 driver (run once).bat</span>, <b>unplug and replug</b> the spectrometer, then start
-<span class="file">Ocean Spectrometer Live.bat</span>. Sections 1 and 2 walk through it, and section 12 covers problems.
+<span class="file">Ocean Spectrometer Live.bat</span>. Sections 1 and 2 walk through it, and section 13 covers problems.
 </div>
 
 <h3>Contents</h3>
@@ -61,6 +61,7 @@
   <li>Measuring absorbance, step by step</li>
   <li>Emission lines and light sources</li>
   <li>Kinetics and time trends</li>
+  <li>Calibration: concentration and wavelength</li>
   <li>Saving, files and Excel</li>
   <li>Keyboard shortcuts</li>
   <li>Troubleshooting</li>
@@ -152,9 +153,9 @@ absorbs near 520 nm and slowly fades, so the Trend tab has something to show. Ev
       (16383 for the HR4000's 14-bit detector) and the allowed integration times. The wavelength range comes from the
       calibration stored inside your spectrometer, so it depends on the grating your unit was built with.</li>
 </ol>
-<p>If no spectrometer is found, the Spectrometer panel says why and what to do next. See section 12.</p>
+<p>If no spectrometer is found, the Spectrometer panel says why and what to do next. See section 13.</p>
 <p>The app remembers your settings (integration time, averaging, mode, sample name, trend wavelengths) for next time.
-A few seconds after it starts, it also checks for a newer version (section 13).</p>
+A few seconds after it starts, it also checks for a newer version (section 14).</p>
 
 <h2 class="break">4. A tour of the window</h2>
 <figure><img src="img/overview.png" alt="Main window with numbered areas"><figcaption>The main window, showing the demo spectrometer with the halogen lamp in Scope mode.</figcaption></figure>
@@ -162,7 +163,7 @@ A few seconds after it starts, it also checks for a newer version (section 13).<
   <tr><td>1</td><td><b>Spectrometer</b>: the list of connected spectrometers, with Refresh, Connect and Disconnect, and the details of the connected unit.</td></tr>
   <tr><td>2</td><td><b>Acquisition</b>: integration time, averaging, smoothing, corrections, Pause/Run and Single, the measurement rate, and the signal level / saturation warning (section 5).</td></tr>
   <tr><td>3</td><td><b>Mode</b>: Scope, Scope - dark, Absorbance and Transmittance, plus <b>Store dark</b> and <b>Store reference</b> and their status (section 6).</td></tr>
-  <tr><td>4</td><td><b>Save</b>: sample name, Save CSV, Save graph, Logs folder, and Hold / Overlay file / Clear held to compare traces (section 10).</td></tr>
+  <tr><td>4</td><td><b>Save</b>: sample name, Save CSV, Save graph, Logs folder, and Hold / Overlay file / Clear held to compare traces (section 11).</td></tr>
   <tr><td>5</td><td><b>Demo spectrometer</b>: only shown in the demo. Lamp, sample and shutter switches.</td></tr>
   <tr><td>6</td><td><b>Plot toolbar</b>: Home (reset the view), Back/Forward, <b>Pan</b> (hand), <b>Zoom</b> (magnifier: drag a box), plot margins and Save image.
       To the right, <b>Auto-scale Y</b> keeps the vertical axis fitted to the data, and <b>Full range</b> shows the whole wavelength range again.</td></tr>
@@ -170,7 +171,7 @@ A few seconds after it starts, it also checks for a newer version (section 13).<
       Zoom in on a band to measure that band. At the far right, <b>Cursor</b> shows the wavelength and value under the mouse pointer.</td></tr>
   <tr><td>8</td><td><b>Live spectrum</b>. The red triangle marks the peak.</td></tr>
   <tr><td>9</td><td><b>Status bar</b>: messages, including where each file was saved. Errors appear here in red.</td></tr>
-  <tr><td>10</td><td><b>Tabs</b>: <b>Spectrum</b> (the live spectrum) and <b>Trend</b> (values over time, section 9).</td></tr>
+  <tr><td>10</td><td><b>Tabs</b>: <b>Spectrum</b> (the live spectrum) and <b>Trend</b> (values over time, section 9) and <b>Calibration</b> (section 10).</td></tr>
 </table>
 
 <h2 class="break">5. Acquisition settings</h2>
@@ -246,10 +247,10 @@ Dilute strongly absorbing samples.
   <li>Zoom in on a line with the magnifier. <b>Peak in view</b> shows its center wavelength and <b>FWHM</b>. The FWHM of a narrow
       atomic line is the optical resolution of your spectrometer.</li>
 </ol>
-<figure><img src="img/lines_zoom.png" alt="Hg-Ar lines zoomed"><figcaption>Demo Hg-Ar lamp zoomed to 535-590 nm: the Hg 546.07 nm line and the 576.96 / 579.07 nm doublet.</figcaption></figure>
+<figure><img src="img/lines_zoom.png" alt="Hg-Ar lines zoomed"><figcaption>Demo Hg-Ar lamp zoomed to 535-590 nm: the Hg 546.07 nm line and the 576.96 / 579.07 nm doublet. The demo's factory calibration is deliberately about 0.3 nm off (the peak reads 577.15 nm), so the wavelength calibration in section 10 has something to fix.</figcaption></figure>
 <p><b>Checking the wavelength calibration:</b> a mercury-argon (Hg-Ar) calibration lamp has lines at well-known wavelengths, for example
 Hg 253.65, 365.02, 404.66, 435.83, 546.07, 576.96, 579.07 nm and Ar 696.54, 706.72, 738.40, 763.51, 811.53, 912.30 nm. Each peak should
-appear within a fraction of a nanometre of these values. The app reads the calibration from the spectrometer and never changes it.</p>
+appear within a fraction of a nanometre of these values. If they don't, the Calibration tab can measure the error and correct it in software (section 10).</p>
 
 <h2 class="break">9. Kinetics and time trends (Trend tab)</h2>
 <ol>
@@ -272,13 +273,56 @@ appear within a fraction of a nanometre of these values. The app reads the calib
   <li>For first-order kinetics, open the CSV in Excel and plot ln(A) against <code>elapsed_s</code>. The slope is -k.</li>
 </ul>
 
-<h2 class="break">10. Saving, files and Excel</h2>
+<h2 class="break">10. Calibration: concentration and wavelength</h2>
+<p>The <b>Calibration</b> tab has two independent tools: a <b>concentration calibration</b> (a Beer's-law curve from standards, to read
+unknown concentrations) and a <b>wavelength calibration</b> (checks the wavelength axis against a calibration lamp and corrects it).
+Both are remembered between sessions in <span class="file">calibration.json</span>.</p>
+<figure><img src="img/calibration.png" alt="Calibration tab"><figcaption>The Calibration tab (demo spectrometer): five standards at 520 nm with two unknowns on the left;
+18 Hg-Ar lines found and the wavelength correction in use on the right.</figcaption></figure>
+
+<h3>Concentration calibration (Beer's law)</h3>
+<ol>
+  <li>Set up for absorbance as in section 7: <b>Store dark</b>, then <b>Store reference</b> with the blank, then pick <b>Absorbance</b>.</li>
+  <li>Set the <b>Wavelength</b> to measure at, usually the band maximum. Zoom to the band on the Spectrum tab and click <b>Use peak in view</b>,
+      or type it. Set the <b>&plusmn; band</b>: absorbance is averaged over this range (1-2 nm is typical). Set the <b>Units</b> (mM, mg/L, ...).</li>
+  <li>Put the first standard in, type its concentration and click <b>Record standard</b> (or press <kbd>Enter</kbd>). The app records the
+      absorbance from the <i>next</i> spectrum, so it is always fresh. Repeat for each standard, at least 2, ideally 5 or more, covering the range you expect.</li>
+  <li>The fit appears under the table: the equation <i>A = slope &times; c + intercept</i>, <b>R&sup2;</b> (orange below 0.99), and the detection
+      and quantitation limits (<b>LOD</b> = 3.3 s<sub>y</sub>/slope, <b>LOQ</b> = 10 s<sub>y</sub>/slope). The table shows each standard's residual, and
+      a standard with an outsized residual can be removed (select it, then <b>Remove selected</b>). Tick <b>Line through zero</b> to force the intercept to 0.</li>
+  <li>Put an unknown in. <b>Now:</b> shows its concentration live. It turns orange if the value lies outside the standards' range (extrapolated, less reliable).</li>
+  <li>To keep a result, type a <b>Sample name</b> (Save panel) and click <b>Record unknown</b>. <b>Save calibration (CSV)</b> writes the fit, the standards
+      and the unknowns to <span class="file">logs\calibration</span>.</li>
+</ol>
+<div class="box">The wavelength and band are locked while standards exist, because standards measured at one wavelength cannot calibrate another.
+Use <b>Clear standards</b> to change them. Keep the same integration time, dark and reference for standards and unknowns; if the Dark or Reference label turns
+orange, store them again and re-run the standards.</div>
+
+<h3>Wavelength calibration (calibration lamp)</h3>
+<p>The factory calibration stored in the HR4000 is usually accurate to a fraction of a nanometre. Use this to check it, or to correct it if a line is off.</p>
+<ol>
+  <li>Point the fiber at a <b>mercury-argon (Hg-Ar) calibration lamp</b>. Use <b>Scope</b> mode with <b>Boxcar 0</b>, and set the integration time so the strongest
+      line is high but <b>not saturated</b>.</li>
+  <li>Click <b>Find lines</b>. The app looks for each <b>reference line</b> within &plusmn; the search width of where the factory calibration puts it, and measures
+      its centre to a fraction of a pixel. The table lists each line's <b>factory error</b> (found - reference). The right-hand plot shows the errors against wavelength.</li>
+  <li>For a different lamp (neon, krypton, ...), replace the <b>Reference lines</b> with that lamp's line list.</li>
+  <li>Pick the <b>Fit</b>: <i>0</i> = constant shift, <i>1</i> = shift + stretch (good default with 3+ lines spread across the range), <i>2</i> = adds curvature (only with many
+      lines spread across the whole range). <b>After fit</b> shows what is left over for each line. Double-click a line to leave it out (for example a weak or blended one).</li>
+  <li>Click <b>Apply correction</b>. From then on all wavelengths (plots, peak readouts, saved files, trends, concentration wavelength) use the corrected axis.
+      Saved CSV files record which calibration was used in their header.</li>
+  <li><b>Reset to factory</b> removes the correction.</li>
+</ol>
+<div class="box">The correction is stored on <b>this computer</b> for <b>this spectrometer's serial number</b> and applied in software. A different spectrometer is not affected,
+and the calibration inside the HR4000 is never changed. The correction is only trustworthy between the shortest and longest line used, so the green status line shows that range.</div>
+
+<h2 class="break">11. Saving, files and Excel</h2>
 <p>Everything is saved inside the app folder, in <span class="file">logs</span>. Click <b>Logs folder</b> to open it.</p>
 <table>
   <tr><th style="width:30%">Folder</th><th>What goes there</th></tr>
   <tr><td><span class="file">logs\spectra</span></td><td><b>Save CSV</b> (<kbd>S</kbd>): one spectrum per file, named <code>&lt;date&gt;_&lt;time&gt;_&lt;sample name&gt;.csv</code>.</td></tr>
   <tr><td><span class="file">logs\graphs</span></td><td><b>Save graph</b>: a PNG image (150 dpi) of whichever tab is showing, ready for a report.</td></tr>
   <tr><td><span class="file">logs\trends</span></td><td>Trend logs (section 9).</td></tr>
+  <tr><td><span class="file">logs\calibration</span></td><td><b>Save calibration (CSV)</b> on the Calibration tab: the fit, the standards and the unknowns (section 10).</td></tr>
 </table>
 <h3>Spectrum CSV format</h3>
 <p>The top lines start with <code>#</code> and record how the spectrum was taken. A table with one row per pixel follows.
@@ -323,7 +367,7 @@ wavelength_nm,raw_counts,dark_counts,reference_counts,Absorbance [Absorbance (AU
   <li><b>Clear held</b> removes them. Switching mode also clears them, because the units change.</li>
 </ul>
 
-<h2>11. Keyboard shortcuts</h2>
+<h2>12. Keyboard shortcuts</h2>
 <p>These work when the cursor is not in a text box:</p>
 <table>
   <tr><th style="width:18%">Key</th><th>Action</th></tr>
@@ -334,7 +378,7 @@ wavelength_nm,raw_counts,dark_counts,reference_counts,Absorbance [Absorbance (AU
   <tr><td><kbd>H</kbd></td><td>Hold the current trace</td></tr>
 </table>
 
-<h2 class="break">12. Troubleshooting</h2>
+<h2 class="break">13. Troubleshooting</h2>
 <table>
   <tr><th style="width:36%">What you see</th><th>What to do</th></tr>
   <tr><td>Nothing happens when you double-click the app.</td><td>Run <span class="file">Install requirements.bat</span> again. If the app still does not open,
@@ -359,7 +403,7 @@ wavelength_nm,raw_counts,dark_counts,reference_counts,Absorbance [Absorbance (AU
   <tr><td>Still no connection after all of the above.</td><td>Try the other USB backend: in Command Prompt in the app folder run <code>py app.py --backend pyseabreeze</code>.</td></tr>
 </table>
 
-<h2 class="break">13. Updates</h2>
+<h2 class="break">14. Updates</h2>
 <p>The app keeps itself up to date. A few seconds after it starts (with internet), it checks the project's page on GitHub.
 When a newer version exists, a yellow bar appears at the top of the window:</p>
 <figure><img src="img/update_bar.png" alt="Update available bar"><figcaption>The update bar, with a short description of what changed.</figcaption></figure>
@@ -377,11 +421,12 @@ When a newer version exists, a yellow bar appears at the top of the window:</p>
 </ul>
 <p class="muted">The update check downloads one small file (<code>release.json</code>) from GitHub and sends nothing about you or your measurements.</p>
 
-<h2>14. Good to know</h2>
+<h2>15. Good to know</h2>
 <ul>
   <li><b>The app is read-only for the instrument.</b> It only reads spectra and sets the integration time. It never changes the wavelength or
       nonlinearity calibration stored in the spectrometer, so nothing you do in the app can damage the calibration.</li>
-  <li>The <b>wavelength calibration</b> comes from the spectrometer's own memory, so wavelengths are correct for your unit.</li>
+  <li>The <b>wavelength calibration</b> comes from the spectrometer's own memory. A software correction from the Calibration tab
+      (section 10) is applied on top of it and can be removed at any time with <b>Reset to factory</b>.</li>
   <li><b>Other Ocean Optics models</b> (USB2000+, USB4000, Flame, QE65000, ...) work too, but need their own driver. With the spectrometer
       plugged in, run <code>py -m seabreeze.os_setup</code> in Command Prompt (it needs internet and asks for administrator rights), then replug.</li>
   <li><b>Removing the driver:</b> in an administrator Command Prompt run <code>pnputil /enum-drivers</code>, find the entry with original name
@@ -390,7 +435,7 @@ When a newer version exists, a yellow bar appears at the top of the window:</p>
   <li>The project lives at <b>github.com/josefigueroa-435/ocean-spectrometer-live</b>, where updates are published.</li>
 </ul>
 
-<h2>15. What is in the folder</h2>
+<h2>16. What is in the folder</h2>
 <table>
   <tr><th style="width:40%">File</th><th>Purpose</th></tr>
   <tr><td><span class="file">READ ME FIRST.txt</span></td><td>Short setup instructions.</td></tr>
@@ -400,10 +445,10 @@ When a newer version exists, a yellow bar appears at the top of the window:</p>
   <tr><td><span class="file">Make desktop shortcut.bat</span></td><td>Puts a shortcut on your desktop.</td></tr>
   <tr><td><span class="file">Ocean Spectrometer Live.bat</span></td><td>Starts the app.</td></tr>
   <tr><td><span class="file">Ocean Spectrometer Live (demo).bat</span></td><td>Starts the app with a simulated HR4000.</td></tr>
-  <tr><td><span class="file">app.py</span>, <span class="file">spectro.py</span>, <span class="file">acquire.py</span>, <span class="file">updater.py</span>, <span class="file">version.py</span></td><td>The program (Python): window, spectrometer access and calculations, measuring thread, self-updater, version number.</td></tr>
+  <tr><td><span class="file">app.py</span>, <span class="file">spectro.py</span>, <span class="file">acquire.py</span>, <span class="file">calibration.py</span>, <span class="file">caltab.py</span>, <span class="file">updater.py</span>, <span class="file">version.py</span></td><td>The program (Python): window, spectrometer access and calculations, measuring thread, calibration, self-updater, version number.</td></tr>
   <tr><td><span class="file">requirements.txt</span>, <span class="file">ocean_live.ico</span></td><td>Package list and icon.</td></tr>
   <tr><td><span class="file">logs\</span> (created on first save)</td><td>Your saved spectra, graphs and trends.</td></tr>
-  <tr><td><span class="file">settings.json</span>, <span class="file">.update_backup\</span></td><td>Your settings (created when you close the app), and the files the last update replaced.</td></tr>
+  <tr><td><span class="file">settings.json</span>, <span class="file">calibration.json</span>, <span class="file">.update_backup\</span></td><td>Your settings, your calibrations (concentration curve and wavelength corrections), and the files the last update replaced. Updates never touch them.</td></tr>
 </table>
 
 </body>

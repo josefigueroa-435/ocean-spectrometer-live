@@ -48,6 +48,7 @@ matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk  # noqa: E402
 from matplotlib.figure import Figure  # noqa: E402
 
+import caltab  # noqa: E402
 import spectro  # noqa: E402
 import updater  # noqa: E402
 from acquire import Acquirer  # noqa: E402
@@ -98,7 +99,8 @@ class App:
         self.acq = Acquirer()
         self.dev: spectro.SpectrometerBase | None = None
         self.devices: list = []
-        self.wl: np.ndarray | None = None
+        self.wl: np.ndarray | None = None          # wavelengths in use (factory + any software correction)
+        self.factory_wl: np.ndarray | None = None  # as stored in the spectrometer
         self.raw = None
         self.info = None
         self.y = None          # displayed (processed) spectrum
@@ -150,6 +152,9 @@ class App:
         style.configure("Bad.TLabel", foreground="#b91c1c")
         style.configure("Good.TLabel", foreground="#15803d")
         style.configure("Big.TLabel", font=("Segoe UI", 10, "bold"))
+        # tables: rows tall enough for the font at any display scaling
+        from tkinter import font as tkfont
+        style.configure("Treeview", rowheight=int(tkfont.nametofont("TkDefaultFont").metrics("linespace") * 1.2))
 
         self.v_int = tk.StringVar(value=self.s["int_ms"])
         self.v_avg = tk.StringVar(value=self.s["avg"])
@@ -360,6 +365,12 @@ class App:
         ttb.pack(side="top", anchor="w")
         self.tcanvas.get_tk_widget().pack(fill="both", expand=True)
 
+        # calibration tab
+        tab_cal = ttk.Frame(self.nb)
+        self.nb.add(tab_cal, text="Calibration")
+        self.cal = caltab.CalibrationTab(
+            self, tab_cal, os.path.join(os.path.dirname(os.path.abspath(self.settings_path)), "calibration.json"))
+
 
     def _bind_keys(self) -> None:
         keys = {
@@ -450,7 +461,8 @@ class App:
                 style="Warn.TLabel")
             return
         self.dev = dev
-        self.wl = dev.wavelengths()
+        self.factory_wl = np.asarray(dev.wavelengths(), dtype=float)
+        self.wl = self.cal.corrected(dev.serial, self.factory_wl)
         self.raw = self.y = self.info = None
         self.dark = self.dark_info = self.ref = self.ref_info = None
         self.clear_held()
@@ -479,8 +491,19 @@ class App:
         self.ax.set_xlim(float(self.wl[0]), float(self.wl[-1]))
         self._show_message("Waiting for the first spectrum...")
         self._update_store_labels()
+        self.cal.on_connect()
         self.canvas.draw_idle()
-        self.set_status(f"Connected to {dev.model} ({dev.serial}).", "good")
+        self.set_status(f"Connected to {dev.model} ({dev.serial})."
+                        + (" Using your wavelength correction." if self.wl is not self.factory_wl else ""),
+                        "good")
+
+    def set_wavelengths(self, wl) -> None:
+        """Switch the wavelength axis (after a calibration change); spectra are per pixel, so the
+        stored dark and reference stay valid."""
+        self.wl = np.asarray(wl, dtype=float)
+        self._bg = None
+        self._redraw()
+        self.canvas.draw_idle()
 
     def disconnect(self) -> None:
         if self.trend:
@@ -624,6 +647,7 @@ class App:
                     self._store(which)
                 self._redraw(now=True)
                 self._trend_sample()
+                self.cal.on_spectrum()
                 self._update_rate()
         finally:
             # Redraw at most as fast as drawing allows: wait at least twice as long as this
@@ -831,6 +855,7 @@ class App:
             "Electric dark correction": p.get("edark", "?"),
             "Nonlinearity correction": p.get("nonlin", "?"),
             "Mode": self.v_mode.get() if self.y_ok else "Scope",
+            "Wavelength calibration": self.cal.describe(d.serial if d else None),
             "Sample": self.v_sample.get().strip(),
         }
         for name, info in (("Dark", self.dark_info), ("Reference", self.ref_info)):
@@ -965,6 +990,9 @@ class App:
         elif self.nb.index("current") == 1 and self._trend_dirty:
             self._trend_dirty = False
             self.tcanvas.draw_idle()
+        elif self.nb.index("current") == 2 and self.cal.dirty:
+            self.cal.dirty = False
+            self.cal.canvas.draw_idle()
 
     def clear_trend(self) -> None:
         if self.trend:

@@ -72,6 +72,16 @@ Saved files go into the "logs" folder in this folder (button "Logs folder"):
   logs\trends   - values over time from the Trend tab (CSV)
 
 
+CALIBRATION
+-----------
+The Calibration tab has two tools (guide section 10):
+- Concentration: record standards of known concentration in Absorbance mode;
+  the program fits a Beer's-law line (R2, LOD) and reads unknowns live.
+- Wavelength: with an Hg-Ar calibration lamp in view, "Find lines" measures
+  the wavelength error and "Apply correction" fixes it in software. The
+  calibration stored in the spectrometer itself is never changed.
+
+
 UPDATES
 -------
 The program updates itself. When a newer version exists, a yellow bar appears at
@@ -95,7 +105,7 @@ IF SOMETHING IS WRONG
   to see the error message.
 - "Windows protected your PC" when opening a .bat: click "More info" > "Run anyway".
 
-More in section 12 of the guide (PDF).
+More in section 13 of the guide (PDF).
 
 
 The program only READS spectra and sets the integration time. It never changes the

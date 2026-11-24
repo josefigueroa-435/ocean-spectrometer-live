@@ -85,7 +85,8 @@ Guide screenshots in `docs/img` come from the demo spectrometer.
 ## Files
 
 `spectro.py` (device access, demo spectrometer, spectral math, CSV), `acquire.py` (acquisition
-thread), `app.py` (window), `updater.py` + `version.py` (self-update), `test_spectro.py` and
-`test_updater.py` (`python -m unittest test_spectro test_updater`, 24 tests, no hardware or network
+thread), `app.py` (window), `calibration.py` + `caltab.py` (Calibration tab: Beer's-law curve and software
+wavelength recalibration, stored per computer in `calibration.json`), `updater.py` + `version.py` (self-update), `test_spectro.py` and
+`test_updater.py`, `test_calibration.py` (`python -m unittest test_spectro test_updater test_calibration`, 37 tests, no hardware or network
 needed), `driver/` (Ocean's HR4000 INF + catalog + co-installers), `tools/` (`shipping.py`: the list of
 shipped files; `publish.py`; `build_package.py`; `make_icon.py`), `release.json` (the published release).

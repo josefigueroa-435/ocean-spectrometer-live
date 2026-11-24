@@ -209,8 +209,12 @@ class DemoSpectrometer(SpectrometerBase):
     """Simulated HR4000 (3840 px, 14-bit) for trying the app without hardware.
 
     Shows a halogen continuum, Hg-Ar lines, and a sample absorption band near 520 nm whose
-    depth decays over a few minutes, so the Trend tab has something kinetic to follow.
+    depth decays over a few minutes, so the Trend tab has something kinetic to follow. Set
+    sample_conc (mM) for a steady Beer's-law sample instead. Its "factory" wavelength calibration
+    is deliberately off by about +0.3 nm, so the wavelength recalibration has something to fix.
     """
+    EPSILON_PER_MM = 0.045  # demo absorbance per mM at the 520 nm band maximum
+
 
     def __init__(self, seed: int | None = None, start: float | None = None):
         self.model = "HR4000 (demo)"
@@ -241,10 +245,13 @@ class DemoSpectrometer(SpectrometerBase):
         self.lamp = "continuum"  # or "lines"
         self.sample_in = True
         self.shutter_closed = False
+        self.sample_conc: float | None = None
         self._dark_level = 95.0
+        # what the demo "EEPROM" reports: true wavelength + 0.30 nm + 0.06 nm per 100 nm above 600
+        self._wl_reported = wl + 0.30 + 0.0006 * (wl - 600.0)
 
     def wavelengths(self) -> np.ndarray:
-        return self._wl
+        return self._wl_reported
 
     def set_integration_us(self, us: int) -> None:
         lo, hi = self.int_limits_us
@@ -252,6 +259,9 @@ class DemoSpectrometer(SpectrometerBase):
 
     def absorbance_now(self, t: float | None = None) -> np.ndarray:
         """True absorbance of the demo sample (decays with a 90 s time constant)."""
+        if self.sample_conc is not None:
+            depth = self.EPSILON_PER_MM * self.sample_conc
+            return depth * np.exp(-0.5 * ((self._wl - 520.0) / 28.0) ** 2)
         if t is None:
             t = time.monotonic() - self._start
         depth = 0.05 + 0.85 * math.exp(-t / 90.0)

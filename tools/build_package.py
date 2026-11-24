@@ -36,6 +36,7 @@ def run_tests(stage: Path) -> None:
     for junk in ("__pycache__", "logs", ".update_tmp", ".update_backup"):
         shutil.rmtree(stage / junk, ignore_errors=True)
     (stage / "settings.json").unlink(missing_ok=True)
+    (stage / "calibration.json").unlink(missing_ok=True)
 
 
 def build(out_dir: Path = OUT_DIR, render: bool = True) -> Path:

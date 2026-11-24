@@ -13,14 +13,14 @@ EDGE = [r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
 
 # Installed layout == repository layout for these files. Updates replace exactly these.
 SHIPPED = [
-    "app.py", "spectro.py", "acquire.py", "updater.py", "version.py", "requirements.txt", "ocean_live.ico",
+    "app.py", "spectro.py", "acquire.py", "calibration.py", "caltab.py", "updater.py", "version.py", "requirements.txt", "ocean_live.ico",
     "READ ME FIRST.txt", GUIDE_PDF,
     "Ocean Spectrometer Live.bat", "Ocean Spectrometer Live (demo).bat", "Install requirements.bat",
     "Install HR4000 driver (run once).bat", "Make desktop shortcut.bat",
     "driver/OOI_HR4000.inf", "driver/OOI_HR4000.cat", "driver/amd64/WdfCoInstaller01007.dll",
     "driver/amd64/WinUSBCoInstaller.dll", "driver/amd64/WUDFUpdate_01007.dll",
 ]
-TESTS = ["test_spectro", "test_updater"]
+TESTS = ["test_spectro", "test_updater", "test_calibration"]
 
 
 def sha256(path: Path) -> str:

@@ -1,6 +1,7 @@
 # Per-computer data: never in the repository
 logs/
 settings.json
+calibration.json
 .update_tmp/
 .update_backup/
 # Generated
