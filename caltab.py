@@ -42,8 +42,11 @@ class CalibrationTab:
         self.fit: dict | None = None
         self.pending: tuple | None = None  # ("standard", conc, t_click) or ("unknown", name, t_click)
 
-        self.v_lines = tk.StringVar(value=", ".join(f"{x:g}" for x in cal.HG_AR_LINES))
-        self.v_window = tk.StringVar(value="1.5")
+        ui = self.data.get("lamp_ui", {}) if isinstance(self.data.get("lamp_ui"), dict) else {}
+        self.v_lamp = tk.StringVar(value=ui.get("lamp", "Hg-Ar lamp"))
+        self.v_lines = tk.StringVar(value=ui.get("lines", ", ".join(f"{x:g}" for x in cal.HG_AR_LINES)))
+        self.v_window = tk.StringVar(value=str(ui.get("window", "1.5")))
+        self.v_bigshift = tk.BooleanVar(value=bool(ui.get("big_shift", True)))
         self.v_order = tk.StringVar(value=ORDERS[1])
         self.v_demo_conc = tk.StringVar(value="")
         self.found: list[dict] = []
@@ -195,6 +198,15 @@ class CalibrationTab:
         self.l_wlstate.pack(fill="x")
         row = ttk.Frame(g)
         row.pack(fill="x", pady=(4, 0))
+        ttk.Label(row, text="Lamp").pack(side="left")
+        lamp = ttk.Combobox(row, textvariable=self.v_lamp, values=list(cal.LAMP_PRESETS) + ["Custom lines"],
+                            state="readonly", width=20)
+        lamp.pack(side="left", padx=4)
+        lamp.bind("<<ComboboxSelected>>", lambda _e: self.use_preset())
+        ttk.Checkbutton(row, text="Also find large offsets (up to +/-15 nm)",
+                        variable=self.v_bigshift).pack(side="left", padx=(10, 0))
+        row = ttk.Frame(g)
+        row.pack(fill="x", pady=(4, 0))
         ttk.Label(row, text="Reference lines (nm)").pack(side="left")
         ttk.Entry(row, textvariable=self.v_lines).pack(side="left", fill="x", expand=True, padx=4)
         row = ttk.Frame(g)
@@ -206,7 +218,7 @@ class CalibrationTab:
         cb.pack(side="left", padx=4)
         cb.bind("<<ComboboxSelected>>", lambda _e: self._preview())
         ttk.Button(row, text="Find lines", command=self.find_lines).pack(side="left", padx=(8, 0))
-        self.t_wl = ttk.Treeview(g, columns=("use", "ref", "found", "err", "res"), show="headings", height=7)
+        self.t_wl = ttk.Treeview(g, columns=("use", "ref", "found", "err", "res"), show="headings", height=6)
         for col, text, w in (("use", "Use", 50), ("ref", "Reference (nm)", 120), ("found", "Found at (nm)", 120),
                              ("err", "Factory error (nm)", 140), ("res", "After fit (nm)", 120)):
             self.t_wl.heading(col, text=text)
@@ -485,7 +497,11 @@ class CalibrationTab:
             a.set_status("The spectrum is saturated: lower the integration time so the lines are not cut off, "
                          "then Find lines again.", "bad")
             return
-        found = cal.find_lines(a.factory_wl, a.raw, refs, window=window)
+        found = cal.find_lines(a.factory_wl, a.raw, refs, window=window,
+                               max_shift=15.0 if self.v_bigshift.get() else 0.0)
+        self.data["lamp_ui"] = {"lamp": self.v_lamp.get(), "lines": self.v_lines.get(),
+                                "window": self.v_window.get(), "big_shift": bool(self.v_bigshift.get())}
+        self.save()
         for d in found:
             d["use"] = True
         self.found = found
@@ -495,6 +511,16 @@ class CalibrationTab:
         else:
             a.set_status(f"Found {len(found)} of {len(refs)} reference lines.", "good")
         self._preview()
+
+    def use_preset(self) -> None:
+        """Fill in the reference lines and search width for the chosen calibration lamp."""
+        preset = cal.LAMP_PRESETS.get(self.v_lamp.get())
+        if preset:
+            lines, window = preset
+            self.v_lines.set(", ".join(f"{x:g}" for x in lines))
+            self.v_window.set(f"{window:g}")
+            if len(lines) <= 2 and self._order() > 0:
+                self.v_order.set(ORDERS[0])  # two lines: a shift is all that can be checked
 
     def _order(self) -> int:
         return ORDERS.index(self.v_order.get()) if self.v_order.get() in ORDERS else 1

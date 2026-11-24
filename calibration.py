@@ -12,6 +12,14 @@ import numpy as np
 # Mercury-argon calibration lamp lines (nm, in air): Hg first, then Ar.
 HG_AR_LINES = [253.652, 296.728, 313.155, 365.015, 404.656, 435.833, 546.074, 576.960, 579.066,
                696.543, 706.722, 738.398, 750.387, 763.511, 772.376, 811.531, 826.452, 842.465, 912.297]
+# Deuterium lamp: the two strong Balmer lines D-beta and D-alpha (nm, in air).
+DEUTERIUM_LINES = [486.000, 656.100]
+
+# name -> (reference lines, search half-width in nm)
+LAMP_PRESETS = {
+    "Hg-Ar lamp": (HG_AR_LINES, 1.5),
+    "Deuterium (D2) lamp": (DEUTERIUM_LINES, 2.0),
+}
 
 
 # ---------------------------------------------------------------- concentration curve
@@ -77,16 +85,51 @@ def subpixel_peak(y: np.ndarray, i: int) -> float:
     return i + 0.5 * (a - c) / den
 
 
-def find_lines(wl, y, ref_lines, window: float = 1.5, min_snr: float = 15.0) -> list[dict]:
+def estimate_shift(wl, y, ref_lines, max_shift: float = 15.0, step: float = 0.05) -> float:
+    """Overall offset (nm) between where the reference lines appear and where they belong.
+
+    Slides the whole line pattern across the spectrum (from -max_shift to +max_shift) and returns the
+    shift where the sum of the line heights above the local background is largest. Moving all lines
+    together keeps close neighbours (e.g. the Hg 577/579 nm doublet) from being confused.
+    """
+    wl = np.asarray(wl, dtype=float)
+    y = np.asarray(y, dtype=float)
+    step_px = float(np.mean(np.diff(wl)))
+    # subtract a broad running minimum so continuum (e.g. a deuterium UV hump) does not score
+    half = max(3, int(round(3.0 / step_px)))
+    pad = np.pad(y, half, mode="edge")
+    windows = np.lib.stride_tricks.sliding_window_view(pad, 2 * half + 1)
+    background = windows.min(axis=1)
+    peaks = np.clip(y - background, 0, None)
+    refs = [r for r in ref_lines if wl[0] + max_shift <= r <= wl[-1] - max_shift] or list(ref_lines)
+    shifts = np.arange(-max_shift, max_shift + step / 2, step)
+    score = np.array([np.sum(np.interp(np.asarray(refs) + s, wl, peaks, left=0, right=0)) for s in shifts])
+    if not np.any(score > 0):
+        return 0.0
+    return float(shifts[int(np.argmax(score))])
+
+
+def find_lines(wl, y, ref_lines, window: float = 1.5, min_snr: float = 15.0,
+               max_shift: float = 0.0) -> list[dict]:
     """Locate each reference line in a measured spectrum.
 
     For every reference wavelength inside the spectrum, take the highest pixel within +/- window nm
     and accept it if it stands min_snr noise levels above the window's lowest point and is not on
     the window's edge. Its position is refined to a fraction of a pixel and converted to nm with wl.
+    With max_shift > 0 the overall offset is estimated first (estimate_shift) and each line is then
+    searched for around ref + offset, so a calibration that is several nm off is still found.
     Returns dicts: ref, found, error (found - ref), height, snr.
     """
     wl = np.asarray(wl, dtype=float)
     y = np.asarray(y, dtype=float)
+    if max_shift > 0:
+        shift = estimate_shift(wl, y, ref_lines, max_shift)
+        if shift != 0.0:
+            found = find_lines(wl - shift, y, ref_lines, window, min_snr)
+            for d in found:
+                d["found"] += shift
+                d["error"] += shift
+            return found
     noise = max(noise_level(y), 1e-12)
     idx = np.arange(wl.size, dtype=float)
     out = []

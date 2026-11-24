@@ -299,13 +299,22 @@ Use <b>Clear standards</b> to change them. Keep the same integration time, dark 
 orange, store them again and re-run the standards.</div>
 
 <h3>Wavelength calibration (calibration lamp)</h3>
-<p>The factory calibration stored in the HR4000 is usually accurate to a fraction of a nanometre. Use this to check it, or to correct it if a line is off.</p>
+<p>The factory calibration stored in a spectrometer is usually accurate to a fraction of a nanometre, but not always: a spectrometer that was bumped or serviced
+can read several nanometres off. Use this to check it, and to correct it if the lines are off.</p>
 <ol>
-  <li>Point the fiber at a <b>mercury-argon (Hg-Ar) calibration lamp</b>. Use <b>Scope</b> mode with <b>Boxcar 0</b>, and set the integration time so the strongest
+  <li>Point the fiber at a lamp with sharp lines of known wavelength. Use <b>Scope</b> mode with <b>Boxcar 0</b>, and set the integration time so the strongest
       line is high but <b>not saturated</b>.</li>
-  <li>Click <b>Find lines</b>. The app looks for each <b>reference line</b> within &plusmn; the search width of where the factory calibration puts it, and measures
-      its centre to a fraction of a pixel. The table lists each line's <b>factory error</b> (found - reference). The right-hand plot shows the errors against wavelength.</li>
-  <li>For a different lamp (neon, krypton, ...), replace the <b>Reference lines</b> with that lamp's line list.</li>
+  <li>Pick the <b>Lamp</b>. This fills in its reference lines and search width:
+    <ul>
+      <li><b>Hg-Ar lamp</b> (mercury-argon calibration lamp): 19 lines from 254 to 912 nm, the best check across the whole range.</li>
+      <li><b>Deuterium (D2) lamp</b> (the UV source in most UV-Vis setups): its two sharp lines, D-&beta; 486.00 nm and D-&alpha; 656.10 nm. With only two lines the fit is set to
+          a constant shift.</li>
+      <li><b>Custom lines</b>: type any lamp's line list (neon, krypton, a laser...) into <b>Reference lines</b>.</li>
+    </ul></li>
+  <li>Leave <b>Also find large offsets</b> ticked. The app first slides the whole line pattern across the spectrum to estimate the overall offset (up to &plusmn;15 nm),
+      then measures each line to a fraction of a pixel within &plusmn; the search width of that estimate. Without it, only lines within the search width of where the
+      factory calibration puts them are found.</li>
+  <li>Click <b>Find lines</b>. The table lists each line's <b>factory error</b> (found - reference), and the right-hand plot shows the errors against wavelength.</li>
   <li>Pick the <b>Fit</b>: <i>0</i> = constant shift, <i>1</i> = shift + stretch (good default with 3+ lines spread across the range), <i>2</i> = adds curvature (only with many
       lines spread across the whole range). <b>After fit</b> shows what is left over for each line. Double-click a line to leave it out (for example a weak or blended one).</li>
   <li>Click <b>Apply correction</b>. From then on all wavelengths (plots, peak readouts, saved files, trends, concentration wavelength) use the corrected axis.
@@ -314,6 +323,8 @@ orange, store them again and re-run the standards.</div>
 </ol>
 <div class="box">The correction is stored on <b>this computer</b> for <b>this spectrometer's serial number</b> and applied in software. A different spectrometer is not affected,
 and the calibration inside the HR4000 is never changed. The correction is only trustworthy between the shortest and longest line used, so the green status line shows that range.</div>
+<p><b>Example:</b> on one HR4000 the deuterium lines read 491.66 and 661.86 nm instead of 486.00 and 656.10: the stored calibration was 5.7 nm high. A
+shift-only correction from the Deuterium preset brought both lines back within 0.05 nm.</p>
 
 <h2 class="break">11. Saving, files and Excel</h2>
 <p>Files are saved in the <b>data folder</b>: by default <span class="file">logs</span> inside the app folder. <b>Data folder &rarr; Open data folder</b>

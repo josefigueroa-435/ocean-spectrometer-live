@@ -93,6 +93,35 @@ class TestWavelength(unittest.TestCase):
         for d in cal.find_lines(corrected, y, cal.HG_AR_LINES):
             self.assertAlmostEqual(d["error"], 0.0, delta=0.03)
 
+    def test_large_offsets_found(self):
+        for offset in (5.7, -8.0, 12.0):
+            wl, y, _ = self.spectrum(offset=offset)
+            self.assertAlmostEqual(cal.estimate_shift(wl, y, cal.HG_AR_LINES), offset, delta=0.1)
+            found = cal.find_lines(wl, y, cal.HG_AR_LINES, window=1.5, max_shift=15)
+            self.assertEqual(len(found), len(cal.HG_AR_LINES), offset)
+            for d in found:
+                self.assertAlmostEqual(d["error"], offset, delta=0.03)
+            pair = {round(d["ref"], 2): d["found"] for d in found}
+            self.assertAlmostEqual(pair[579.07] - pair[576.96], 2.106, delta=0.05)  # doublet not swapped
+        # without the shift search a 5.7 nm error is out of reach of a 1.5 nm window
+        wl, y, _ = self.spectrum(offset=5.7)
+        self.assertEqual(cal.find_lines(wl, y, cal.HG_AR_LINES, window=1.5), [])
+
+    def test_deuterium_lamp(self):
+        """UV continuum + molecular band + two Balmer lines, read 5.7 nm high (like the real HR4000)."""
+        true_wl = np.linspace(195, 1126, 3648)
+        y = 500 * np.exp(-0.5 * ((true_wl - 380) / 90) ** 2)              # continuum
+        y += 1200 * np.exp(-0.5 * ((true_wl - 585) / 8) ** 2)             # ~590 nm band
+        y += 2600 * np.exp(-0.5 * ((true_wl - 486.0) / 0.27) ** 2)
+        y += 11000 * np.exp(-0.5 * ((true_wl - 656.1) / 0.27) ** 2)
+        y += np.random.default_rng(3).normal(0, 30, y.size)
+        wl = true_wl + 5.7
+        lines, window = cal.LAMP_PRESETS["Deuterium (D2) lamp"]
+        found = cal.find_lines(wl, y, lines, window=window, max_shift=15)
+        self.assertEqual([round(d["ref"], 1) for d in found], [486.0, 656.1])
+        for d in found:
+            self.assertAlmostEqual(d["error"], 5.7, delta=0.05)
+
     def test_order_lowered_with_few_lines(self):
         fit = cal.fit_wavelength_correction([546.4], [546.074], order=2)
         self.assertEqual(fit["order"], 0)
@@ -122,6 +151,11 @@ class TestDemoFixtures(unittest.TestCase):
         d.sample_conc = 10.0
         a = d.absorbance_now()
         self.assertAlmostEqual(a.max(), 0.45, delta=0.001)
+
+
+def caltab_orders():
+    import caltab
+    return caltab.ORDERS
 
 
 class TestCalibrationTab(unittest.TestCase):
@@ -159,6 +193,17 @@ class TestCalibrationTab(unittest.TestCase):
                 a.v_int.set("40")
                 a.refresh_devices(auto=True)
                 dev = a.dev
+
+                # ---- lamp presets fill in lines, search width and (for 2 lines) a shift-only fit
+                c.v_lamp.set("Deuterium (D2) lamp")
+                c.use_preset()
+                self.assertEqual(c.v_lines.get(), "486, 656.1")
+                self.assertEqual(c.v_window.get(), "2")
+                self.assertEqual(c._order(), 0)
+                c.v_lamp.set("Hg-Ar lamp")
+                c.use_preset()
+                c.v_order.set(caltab_orders()[1])
+                self.assertIn("546.074", c.v_lines.get())
 
                 # ---- wavelength: Hg-Ar lamp, find lines, apply, survives reconnect, reset
                 dev.lamp, dev.sample_in = "lines", False
