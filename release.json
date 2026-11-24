@@ -1,0 +1,103 @@
+{
+  "version": "1.0.0",
+  "commit": "054c9782d0e6700b7a7d95fea0c140ed330d1674",
+  "date": "2026-11-24T02:48:49+00:00",
+  "notes": "First release",
+  "files": [
+    {
+      "path": "app.py",
+      "sha256": "98dba07b321f504eacf6d1ac045308170dc7d80bf4a11e1408813f1728c59b0f",
+      "size": 50892
+    },
+    {
+      "path": "spectro.py",
+      "sha256": "c579a00e11234d5f3e1d5032aa9947e81e54652cd88b169efac0257d4a24cfcc",
+      "size": 16170
+    },
+    {
+      "path": "acquire.py",
+      "sha256": "5717c5d47357bff5322b46d1f6785cf2896f9e41909fdab51d712a6c2ec68012",
+      "size": 3989
+    },
+    {
+      "path": "updater.py",
+      "sha256": "3bb7aebca7b10eef4fb6cbb927d6f51ec2b0418cd05ff4f5663b395efa7adeb8",
+      "size": 6805
+    },
+    {
+      "path": "version.py",
+      "sha256": "caebfa78855fb51ba0f7b9e0abf7a89c8010c7d607d8f35f3531ee3b5c10cb5d",
+      "size": 104
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "520c02db8c789e28ecdf5005260a87fc47862d376dbd8c3a9c32dbea4a2a0b41",
+      "size": 55
+    },
+    {
+      "path": "ocean_live.ico",
+      "sha256": "89cfedac8d07135ff589dbb8478f173a0cf6c72dcbf11bba0b73cddc6b4a4d45",
+      "size": 18017
+    },
+    {
+      "path": "READ ME FIRST.txt",
+      "sha256": "a0d151e38c8acd8a197ef5513712c5dd450c956986ebe41195a4a9a3d3a5d17a",
+      "size": 4528
+    },
+    {
+      "path": "Ocean Spectrometer Live - Guide.pdf",
+      "sha256": "20a90c5f01c06543028cb26b5d92d0922e285205effe7703671b71257111e282",
+      "size": 814719
+    },
+    {
+      "path": "Ocean Spectrometer Live.bat",
+      "sha256": "38a26caae3a8ae9c6aa451175279acfeaaff1c72f42a689dff3777227fd56eb4",
+      "size": 175
+    },
+    {
+      "path": "Ocean Spectrometer Live (demo).bat",
+      "sha256": "1a3fff41a4085448ffd80c6513992a3f2575a005a0d7b7ad41b3bf3faf673a17",
+      "size": 141
+    },
+    {
+      "path": "Install requirements.bat",
+      "sha256": "d8911174f1d1229c751c7f23c750d894ce47c98b66f3a099527ec83db69727cd",
+      "size": 921
+    },
+    {
+      "path": "Install HR4000 driver (run once).bat",
+      "sha256": "c65653420ae66da3c2bf8dafe8f86f73a70c3d5718a292d2fb77078a2247cdeb",
+      "size": 960
+    },
+    {
+      "path": "Make desktop shortcut.bat",
+      "sha256": "668a15550925f68547ba3743208a49da47d262c7886f4e7aeded3207a8b15157",
+      "size": 879
+    },
+    {
+      "path": "driver/OOI_HR4000.inf",
+      "sha256": "58ac5f86740e98bfc7b4bf0b869c124f8a105366c742baa7f258eabbf0aa818c",
+      "size": 2449
+    },
+    {
+      "path": "driver/OOI_HR4000.cat",
+      "sha256": "abb20d0cafa7c170d4839643917cd9220537773f7ea6bf4be058c642a0324d96",
+      "size": 8833
+    },
+    {
+      "path": "driver/amd64/WdfCoInstaller01007.dll",
+      "sha256": "749cc009f1cae5c633083897e906b381aa685829fee2d7cd5e07bae543848ff7",
+      "size": 1490656
+    },
+    {
+      "path": "driver/amd64/WinUSBCoInstaller.dll",
+      "sha256": "e48a4651f9f691d1f0c115f50f8e2e2baf18107cc766a0cf0a1c17ef8f6e82db",
+      "size": 708168
+    },
+    {
+      "path": "driver/amd64/WUDFUpdate_01007.dll",
+      "sha256": "1def09ddf41a8c834f3d459889d2e48690a33b40e3bd5d403c5eb94ec84a8cee",
+      "size": 1533512
+    }
+  ]
+}
