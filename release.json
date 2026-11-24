@@ -1,8 +1,8 @@
 {
-  "version": "1.3.0",
-  "commit": "0bd708825ca4d8867afd9bde635c2634f4d87d29",
-  "date": "2026-11-24T23:14:54+00:00",
-  "notes": "Light source preset (Halogen, Deuterium, both) with a Set button that picks the integration time",
+  "version": "1.3.1",
+  "commit": "f2b41268cf5853c340962b8c6ddfb7f97cfd0db3",
+  "date": "2026-11-24T23:27:32+00:00",
+  "notes": "Light source preset with a Set button for the integration time, and more precise line centres in wavelength calibration",
   "files": [
     {
       "path": "app.py",
@@ -21,8 +21,8 @@
     },
     {
       "path": "calibration.py",
-      "sha256": "394000bcb127c5fb4a071ceaa39a0abb6611c64e1d371a7065840cd5fa9835d0",
-      "size": 8378
+      "sha256": "1da5c9be1535b884f2ed7122935e74fbe700fa133aa6d23cac8d945a12a26810",
+      "size": 8873
     },
     {
       "path": "caltab.py",
@@ -36,7 +36,7 @@
     },
     {
       "path": "version.py",
-      "sha256": "f19bc997aad022a2dae7c7129b034c9bef05c9730ea3d2473d352b008f5f5271",
+      "sha256": "63b4db1f44db61e51e934072983406d8691fa6350633910d0187035b5eb5cccd",
       "size": 104
     },
     {
