@@ -218,5 +218,100 @@ class TestCalibrationTab(unittest.TestCase):
                 a.on_close()
 
 
+class TestSharedDataFolder(unittest.TestCase):
+    """Two 'laptops' (separate settings files) sharing one data folder."""
+
+    def make_app(self, tmp, name):
+        import os
+        import tkinter as tk
+
+        import app as app_mod
+
+        root = tk.Tk()
+        root.withdraw()
+        os.makedirs(os.path.join(tmp, name), exist_ok=True)
+        a = app_mod.App(root, demo=True, settings_path=os.path.join(tmp, name, "settings.json"),
+                        logs_dir=os.path.join(tmp, name, "logs"), auto_connect=False)
+
+        def pump(seconds, until=None):
+            end = time.time() + seconds
+            while time.time() < end:
+                root.update()
+                if until and until():
+                    return True
+                time.sleep(0.01)
+            return False
+
+        return a, pump
+
+    def test_shared_folder(self):
+        import json
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            shared = os.path.join(tmp, "shared")
+            # ---- laptop A: wavelength correction made locally, then switch to the (empty) shared folder
+            a, pump = self.make_app(tmp, "laptopA")
+            try:
+                a.v_int.set("40")
+                a.refresh_devices(auto=True)
+                a.dev.lamp, a.dev.sample_in = "lines", False
+                t = time.time()
+                pump(5, lambda: a.info and a.info["t_start"] > t)
+                a.cal.find_lines()
+                a.cal.apply_correction()
+                a.set_data_dir(shared)
+                self.assertEqual(a.logs, shared)
+                with open(os.path.join(shared, "calibration.json"), encoding="utf-8") as fh:
+                    self.assertIn("DEMO0001", json.load(fh)["wavelength"])  # copied into the shared folder
+                path = a.save_spectrum()
+                self.assertTrue(path.startswith(os.path.join(shared, "spectra")))
+                self.assertTrue(os.path.exists(path))
+            finally:
+                a.on_close()
+            with open(os.path.join(tmp, "laptopA", "settings.json"), encoding="utf-8") as fh:
+                self.assertEqual(json.load(fh)["data_dir"], shared)
+
+            # ---- laptop B: points at the same folder and gets A's correction for the same spectrometer
+            os.makedirs(os.path.join(tmp, "laptopB"), exist_ok=True)
+            with open(os.path.join(tmp, "laptopB", "settings.json"), "w", encoding="utf-8") as fh:
+                json.dump({"data_dir": shared}, fh)
+            b, pump = self.make_app(tmp, "laptopB")
+            try:
+                self.assertEqual(b.logs, shared)
+                b.refresh_devices(auto=True)
+                self.assertFalse(np.array_equal(b.wl, b.factory_wl))  # correction applied
+                inside = (b.dev._wl > 300) & (b.dev._wl < 900)
+                self.assertLess(np.max(np.abs(b.wl - b.dev._wl)[inside]), 0.03)
+
+                # another laptop saves a correction for a different spectrometer meanwhile...
+                p = os.path.join(shared, "calibration.json")
+                with open(p, encoding="utf-8") as fh:
+                    data = json.load(fh)
+                data["wavelength"]["OTHER123"] = {"coeffs": [0.1], "order": 0, "rms": 0.0, "range": [300, 800],
+                                                  "date": "x", "lines": []}
+                with open(p, "w", encoding="utf-8") as fh:
+                    json.dump(data, fh)
+                # ...then B resets DEMO0001: OTHER123 must survive, DEMO0001 must go
+                b.cal.reset_correction()
+                with open(p, encoding="utf-8") as fh:
+                    wl = json.load(fh)["wavelength"]
+                self.assertIn("OTHER123", wl)
+                self.assertNotIn("DEMO0001", wl)
+            finally:
+                b.on_close()
+
+            # ---- unreachable shared folder: falls back to the app folder with a warning
+            with open(os.path.join(tmp, "laptopB", "settings.json"), "w", encoding="utf-8") as fh:
+                json.dump({"data_dir": os.path.join(tmp, "not-mounted")}, fh)
+            c, pump = self.make_app(tmp, "laptopB")
+            try:
+                self.assertEqual(c.logs, os.path.join(tmp, "laptopB", "logs"))
+                self.assertIn("not reachable", c.status.cget("text"))
+            finally:
+                c.on_close()
+
+
 if __name__ == "__main__":
     unittest.main()

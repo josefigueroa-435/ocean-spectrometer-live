@@ -163,7 +163,7 @@ A few seconds after it starts, it also checks for a newer version (section 14).<
   <tr><td>1</td><td><b>Spectrometer</b>: the list of connected spectrometers, with Refresh, Connect and Disconnect, and the details of the connected unit.</td></tr>
   <tr><td>2</td><td><b>Acquisition</b>: integration time, averaging, smoothing, corrections, Pause/Run and Single, the measurement rate, and the signal level / saturation warning (section 5).</td></tr>
   <tr><td>3</td><td><b>Mode</b>: Scope, Scope - dark, Absorbance and Transmittance, plus <b>Store dark</b> and <b>Store reference</b> and their status (section 6).</td></tr>
-  <tr><td>4</td><td><b>Save</b>: sample name, Save CSV, Save graph, Logs folder, and Hold / Overlay file / Clear held to compare traces (section 11).</td></tr>
+  <tr><td>4</td><td><b>Save</b>: sample name, Save CSV, Save graph, the <b>Data folder</b> menu (open it, or switch to a shared folder), and Hold / Overlay file / Clear held to compare traces (section 11).</td></tr>
   <tr><td>5</td><td><b>Demo spectrometer</b>: only shown in the demo. Lamp, sample and shutter switches.</td></tr>
   <tr><td>6</td><td><b>Plot toolbar</b>: Home (reset the view), Back/Forward, <b>Pan</b> (hand), <b>Zoom</b> (magnifier: drag a box), plot margins and Save image.
       To the right, <b>Auto-scale Y</b> keeps the vertical axis fitted to the data, and <b>Full range</b> shows the whole wavelength range again.</td></tr>
@@ -276,7 +276,7 @@ appear within a fraction of a nanometre of these values. If they don't, the Cali
 <h2 class="break">10. Calibration: concentration and wavelength</h2>
 <p>The <b>Calibration</b> tab has two independent tools: a <b>concentration calibration</b> (a Beer's-law curve from standards, to read
 unknown concentrations) and a <b>wavelength calibration</b> (checks the wavelength axis against a calibration lamp and corrects it).
-Both are remembered between sessions in <span class="file">calibration.json</span>.</p>
+Both are remembered between sessions in <span class="file">calibration.json</span>. With a shared data folder (section 11), every laptop uses the same calibrations.</p>
 <figure><img src="img/calibration.png" alt="Calibration tab"><figcaption>The Calibration tab (demo spectrometer): five standards at 520 nm with two unknowns on the left;
 18 Hg-Ar lines found and the wavelength correction in use on the right.</figcaption></figure>
 
@@ -316,7 +316,8 @@ orange, store them again and re-run the standards.</div>
 and the calibration inside the HR4000 is never changed. The correction is only trustworthy between the shortest and longest line used, so the green status line shows that range.</div>
 
 <h2 class="break">11. Saving, files and Excel</h2>
-<p>Everything is saved inside the app folder, in <span class="file">logs</span>. Click <b>Logs folder</b> to open it.</p>
+<p>Files are saved in the <b>data folder</b>: by default <span class="file">logs</span> inside the app folder. <b>Data folder &rarr; Open data folder</b>
+opens it. (In the table below, <span class="file">logs</span> means the data folder.)</p>
 <table>
   <tr><th style="width:30%">Folder</th><th>What goes there</th></tr>
   <tr><td><span class="file">logs\spectra</span></td><td><b>Save CSV</b> (<kbd>S</kbd>): one spectrum per file, named <code>&lt;date&gt;_&lt;time&gt;_&lt;sample name&gt;.csv</code>.</td></tr>
@@ -324,6 +325,26 @@ and the calibration inside the HR4000 is never changed. The correction is only t
   <tr><td><span class="file">logs\trends</span></td><td>Trend logs (section 9).</td></tr>
   <tr><td><span class="file">logs\calibration</span></td><td><b>Save calibration (CSV)</b> on the Calibration tab: the fit, the standards and the unknowns (section 10).</td></tr>
 </table>
+<h3>Sharing data between laptops (shared data folder)</h3>
+<p>Each laptop keeps its own files unless you point them at a <b>shared folder</b>: a OneDrive, Google Drive or Dropbox folder synced to every laptop,
+or a network drive.</p>
+<ol>
+  <li>On each laptop, click <b>Data folder &rarr; Change data folder...</b> and pick the <b>same</b> shared folder.</li>
+  <li>From then on that laptop saves spectra, graphs, trends and calibration files there. It also uses the shared
+      <span class="file">calibration.json</span>, so a wavelength correction made on one laptop applies to that spectrometer on all of them, and everyone
+      shares one concentration curve.</li>
+  <li>The first laptop to pick an empty shared folder copies its calibrations into it. A laptop that picks a folder that already has calibrations uses those.</li>
+  <li><b>Data folder &rarr; Use the app folder (default)</b> switches back. Files already saved stay where they are.</li>
+</ol>
+<ul>
+  <li>Program settings (integration time, mode, window size, ...) stay on each laptop.</li>
+  <li>Each saved spectrum's header names the computer it came from.</li>
+  <li>Wavelength corrections are merged per spectrometer, so laptops working with different spectrometers don't overwrite each other.
+      The concentration curve is a single shared one: if two people edit standards at the same moment, the last save wins.</li>
+  <li>If the shared folder is unreachable when the app starts (for example a network drive while off campus), the app saves in the app folder and says so
+      in the status bar.</li>
+</ul>
+
 <h3>Spectrum CSV format</h3>
 <p>The top lines start with <code>#</code> and record how the spectrum was taken. A table with one row per pixel follows.
 This example was saved from the demo spectrometer:</p>
@@ -400,6 +421,8 @@ wavelength_nm,raw_counts,dark_counts,reference_counts,Absorbance [Absorbance (AU
   <tr><td>Dark/Reference labels are orange ("store again").</td><td>Settings changed after storing them. Store both again.</td></tr>
   <tr><td>"Update failed" in the yellow bar.</td><td>Nothing was changed, and the app keeps working as before. Check the internet connection and click <b>Try again</b>.
       If it says Windows would not let it replace its files, the app folder is somewhere protected (such as Program Files): move the folder to Documents.</td></tr>
+  <tr><td>Status bar: "The shared data folder ... is not reachable".</td><td>The synced or network folder isn't available (sync app not running, drive not
+      connected, off campus). Files go to the app folder for now. Reconnect, then restart the app, or pick the folder again under <b>Data folder</b>.</td></tr>
   <tr><td>Still no connection after all of the above.</td><td>Try the other USB backend: in Command Prompt in the app folder run <code>py app.py --backend pyseabreeze</code>.</td></tr>
 </table>
 

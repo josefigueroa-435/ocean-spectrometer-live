@@ -30,16 +30,15 @@ class CalibrationTab:
     def __init__(self, app, parent: ttk.Frame, store_path: str):
         self.app = app
         self.path = store_path
-        self.data = self._load()
-        cc = self.data.setdefault("concentration", {})
-        self.data.setdefault("wavelength", {})
-        self.v_cwl = tk.StringVar(value=str(cc.get("wavelength", "520")))
-        self.v_cband = tk.StringVar(value=str(cc.get("band", "1.0")))
-        self.v_unit = tk.StringVar(value=cc.get("unit", "mM"))
-        self.v_zero = tk.BooleanVar(value=bool(cc.get("through_zero", False)))
+        self._wl_touched: set[str] = set()  # serials whose correction this computer changed
+        self.v_cwl = tk.StringVar()
+        self.v_cband = tk.StringVar()
+        self.v_unit = tk.StringVar()
+        self.v_zero = tk.BooleanVar()
         self.v_conc = tk.StringVar(value="")
-        self.standards: list[dict] = list(cc.get("standards", []))
-        self.unknowns: list[dict] = list(cc.get("unknowns", []))
+        self.standards: list[dict] = []
+        self.unknowns: list[dict] = []
+        self._take(self._load())
         self.fit: dict | None = None
         self.pending: tuple | None = None  # ("standard", conc, t_click) or ("unknown", name, t_click)
 
@@ -62,16 +61,66 @@ class CalibrationTab:
         except (OSError, ValueError):
             return {}
 
+    def _take(self, data: dict) -> None:
+        """Use calibration data read from disk (start-up, or a newly chosen data folder)."""
+        self.data = data
+        cc = self.data.setdefault("concentration", {})
+        if not isinstance(self.data.get("wavelength"), dict):
+            self.data["wavelength"] = {}
+        self.v_cwl.set(str(cc.get("wavelength", "520")))
+        self.v_cband.set(str(cc.get("band", "1.0")))
+        self.v_unit.set(cc.get("unit", "mM"))
+        self.v_zero.set(bool(cc.get("through_zero", False)))
+        self.standards = list(cc.get("standards", []))
+        self.unknowns = list(cc.get("unknowns", []))
+
     def save(self) -> None:
+        """Write calibration.json. In a shared folder other computers write it too, so wavelength
+        corrections are merged per spectrometer: only the serials changed here overwrite the file's."""
         cc = self.data["concentration"]
         cc.update({"wavelength": self.v_cwl.get(), "band": self.v_cband.get(), "unit": self.v_unit.get(),
                    "through_zero": bool(self.v_zero.get()), "standards": self.standards,
                    "unknowns": self.unknowns})
+        disk = self._load().get("wavelength")
+        merged = dict(disk) if isinstance(disk, dict) else {}
+        for serial in self._wl_touched:
+            if serial in self.data["wavelength"]:
+                merged[serial] = self.data["wavelength"][serial]
+            else:
+                merged.pop(serial, None)
+        self.data["wavelength"] = merged
+        tmp = self.path + ".tmp"
         try:
-            with open(self.path, "w", encoding="utf-8") as fh:
+            os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
+            with open(tmp, "w", encoding="utf-8") as fh:
                 json.dump(self.data, fh, indent=2)
+            os.replace(tmp, self.path)  # never leave a half-written file for a sync client to copy
         except OSError as exc:
             self.app.set_status(f"Could not save calibration.json: {exc}", "bad")
+
+    def reload_wavelengths(self) -> None:
+        """Pick up wavelength corrections other computers saved to a shared calibration.json."""
+        disk = self._load().get("wavelength")
+        if isinstance(disk, dict):
+            self.data["wavelength"] = disk
+
+    def set_path(self, path: str) -> str:
+        """Switch to the calibration.json in another data folder. If that folder has none yet, the
+        calibrations in use here are copied into it. Returns "loaded" or "copied"."""
+        self.path = path
+        if os.path.exists(path):
+            self._take(self._load())
+            self._wl_touched = set()
+            how = "loaded"
+        else:
+            self._wl_touched = set(self.data["wavelength"])
+            how = "copied"
+        self._refit()  # also saves
+        if self.app.dev is not None and self.app.factory_wl is not None:
+            self.app.set_wavelengths(self.corrected(self.app.dev.serial, self.app.factory_wl))
+        self._update_wl_state()
+        self.redraw()
+        return how
 
     # ------------------------------------------------------------ layout
     def _build(self, parent) -> None:
@@ -493,6 +542,7 @@ class CalibrationTab:
         if not self.preview or dev is None:
             return
         used = [d for d in self.found if d["use"]]
+        self._wl_touched.add(str(dev.serial))
         self.data["wavelength"][str(dev.serial)] = {
             "coeffs": self.preview["coeffs"], "order": self.preview["order"], "rms": self.preview["rms"],
             "range": self.preview["range"], "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -508,8 +558,9 @@ class CalibrationTab:
         dev = self.app.dev
         if dev is None:
             return
-        if self.data["wavelength"].pop(str(dev.serial), None) is not None:
-            self.save()
+        self._wl_touched.add(str(dev.serial))
+        self.data["wavelength"].pop(str(dev.serial), None)
+        self.save()
         self.app.set_wavelengths(self.app.factory_wl)
         self._update_wl_state()
         self.app.set_status(f"Back to the factory wavelength calibration for {dev.serial}.", "good")

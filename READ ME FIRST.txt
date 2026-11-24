@@ -66,10 +66,16 @@ Measuring absorbance:
   Store dark + reference again after changing the integration time (the labels
   turn orange to remind you).
 
-Saved files go into the "logs" folder in this folder (button "Logs folder"):
-  logs\spectra  - spectra (CSV)
-  logs\graphs   - pictures of the plot (PNG)
-  logs\trends   - values over time from the Trend tab (CSV)
+Saved files go into the "logs" folder in this folder ("Data folder" menu >
+"Open data folder"):
+  logs\spectra      - spectra (CSV)
+  logs\graphs       - pictures of the plot (PNG)
+  logs\trends       - values over time from the Trend tab (CSV)
+  logs\calibration  - concentration calibrations (CSV)
+
+To share data between laptops, pick the same synced folder (OneDrive, Google
+Drive, network drive) on each one under "Data folder" > "Change data folder".
+Saved files and calibrations then go there; settings stay on each laptop.
 
 
 CALIBRATION

@@ -69,6 +69,7 @@ DEFAULTS = {
     "track": "520",
     "band": "1.0",
     "every": "0",
+    "data_dir": "",
     "geometry": "zoomed",
 }
 
@@ -93,8 +94,17 @@ class App:
         self.demo = demo
         self.backend_pref = backend
         self.settings_path = settings_path or os.path.join(HERE, "settings.json")
-        self.logs = logs_dir or os.path.join(HERE, "logs")
         self.s = load_settings(self.settings_path)
+        # where saved files and calibration.json live: the app folder, or a shared data folder
+        self._default_logs = logs_dir or os.path.join(HERE, "logs")
+        self._default_cal = os.path.join(os.path.dirname(os.path.abspath(self.settings_path)), "calibration.json")
+        self.data_dir = self.s.get("data_dir") or ""
+        self._data_dir_missing = bool(self.data_dir) and not os.path.isdir(self.data_dir)
+        if self.data_dir and not self._data_dir_missing:
+            self.logs, cal_path = self.data_dir, os.path.join(self.data_dir, "calibration.json")
+        else:
+            self.logs, cal_path = self._default_logs, self._default_cal
+        self._cal_path = cal_path
 
         self.acq = Acquirer()
         self.dev: spectro.SpectrometerBase | None = None
@@ -140,7 +150,7 @@ class App:
             root.after(150, lambda: self.refresh_devices(auto=True))
         if auto_connect if check_updates is None else check_updates:
             root.after(3000, self.check_updates)
-        root.after(60, self._poll)
+        self._poll_id = root.after(60, self._poll)
 
     # ================================================================ layout
     def _build(self) -> None:
@@ -276,7 +286,13 @@ class App:
         row.pack(fill="x", pady=(4, 0))
         ttk.Button(row, text="Save CSV", command=self.save_spectrum).pack(side="left")
         ttk.Button(row, text="Save graph", command=self.save_graph).pack(side="left", padx=4)
-        ttk.Button(row, text="Logs folder", command=self.open_logs).pack(side="left")
+        mb = ttk.Menubutton(row, text="Data folder")
+        menu = tk.Menu(mb, tearoff=False)
+        menu.add_command(label="Open data folder", command=self.open_logs)
+        menu.add_command(label="Change data folder (e.g. a shared folder)...", command=self.choose_data_dir)
+        menu.add_command(label="Use the app folder (default)", command=lambda: self.set_data_dir(""))
+        mb["menu"] = menu
+        mb.pack(side="left")
         row = ttk.Frame(f)
         row.pack(fill="x", pady=(4, 0))
         ttk.Button(row, text="Hold", command=self.hold).pack(side="left")
@@ -368,8 +384,12 @@ class App:
         # calibration tab
         tab_cal = ttk.Frame(self.nb)
         self.nb.add(tab_cal, text="Calibration")
-        self.cal = caltab.CalibrationTab(
-            self, tab_cal, os.path.join(os.path.dirname(os.path.abspath(self.settings_path)), "calibration.json"))
+        self.cal = caltab.CalibrationTab(self, tab_cal, self._cal_path)
+        if self._data_dir_missing:
+            self.set_status(f"The shared data folder {self.data_dir} is not reachable right now, so files are "
+                            "saved in the app folder. Fix it under Save > Data folder.", "warn")
+        elif self.data_dir:
+            self.set_status(f"Saving to the shared data folder {self.data_dir}.")
 
 
     def _bind_keys(self) -> None:
@@ -462,6 +482,7 @@ class App:
             return
         self.dev = dev
         self.factory_wl = np.asarray(dev.wavelengths(), dtype=float)
+        self.cal.reload_wavelengths()  # another laptop may have saved a correction to the shared folder
         self.wl = self.cal.corrected(dev.serial, self.factory_wl)
         self.raw = self.y = self.info = None
         self.dark = self.dark_info = self.ref = self.ref_info = None
@@ -653,7 +674,7 @@ class App:
             # Redraw at most as fast as drawing allows: wait at least twice as long as this
             # update took, so the window stays responsive at short integration times.
             spent_ms = (time.perf_counter() - t0) * 1000
-            self.root.after(int(min(500, max(40, 2 * spent_ms))), self._poll)
+            self._poll_id = self.root.after(int(min(500, max(40, 2 * spent_ms))), self._poll)
 
     def _update_rate(self) -> None:
         a = self._arrivals
@@ -845,7 +866,8 @@ class App:
         d, p = self.dev, self.info or {}
         meta = {
             "Saved": datetime.now().isoformat(timespec="seconds"),
-            "Program": APP_NAME,
+            "Program": f"{APP_NAME} {__version__}",
+            "Computer": os.environ.get("COMPUTERNAME", ""),
             "Spectrometer": f"{d.model} serial {d.serial}" if d else "?",
             "USB backend": d.backend if d else "?",
             "Spectrum taken": datetime.fromtimestamp(p["t_end"]).isoformat(timespec="seconds") if p else "?",
@@ -893,6 +915,37 @@ class App:
             self.canvas.draw_idle()
         self.set_status(f"Saved graph: {self._short(path)}", "good")
         return path
+
+    def choose_data_dir(self) -> None:
+        path = filedialog.askdirectory(
+            title="Data folder for saved files and calibrations (pick the same shared folder on every laptop)",
+            initialdir=self.data_dir or os.path.expanduser("~"))
+        if path:
+            self.set_data_dir(os.path.normpath(path))
+
+    def set_data_dir(self, path: str) -> None:
+        """Save files and calibrations in path ("" = the app folder). Settings stay on this computer."""
+        if self.trend:
+            self.toggle_trend()
+        if path:
+            try:
+                os.makedirs(path, exist_ok=True)
+                probe = os.path.join(path, ".write_test")
+                with open(probe, "w", encoding="utf-8") as fh:
+                    fh.write("ok")
+                os.remove(probe)
+            except OSError as exc:
+                self.set_status(f"Cannot use {path} as the data folder: {exc}", "bad")
+                return
+        self.data_dir = path
+        self._data_dir_missing = False
+        self.logs = path or self._default_logs
+        how = self.cal.set_path(os.path.join(path, "calibration.json") if path else self._default_cal)
+        self.save_settings()
+        where = path or "the app folder"
+        cal_note = ("its calibrations are now in use" if how == "loaded"
+                    else "this computer's calibrations were copied there")
+        self.set_status(f"Data folder: {where}. New files are saved there, and {cal_note}.", "good")
 
     def open_logs(self) -> None:
         os.makedirs(self.logs, exist_ok=True)
@@ -1107,7 +1160,7 @@ class App:
             "edark": bool(self.v_edark.get()), "nonlin": bool(self.v_nonlin.get()),
             "mode": self.v_mode.get(), "autoy": bool(self.v_autoy.get()),
             "sample": self.v_sample.get(), "track": self.v_track.get(), "band": self.v_band.get(),
-            "every": self.v_every.get(),
+            "every": self.v_every.get(), "data_dir": self.data_dir,
             "geometry": "zoomed" if self.root.state() == "zoomed" else self.root.winfo_geometry(),
         }
         try:
@@ -1122,6 +1175,10 @@ class App:
             self.toggle_trend()
         self.save_settings()
         self.acq.stop()
+        try:
+            self.root.after_cancel(self._poll_id)
+        except (tk.TclError, AttributeError):
+            pass
         self.root.destroy()
 
 
