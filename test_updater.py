@@ -122,6 +122,8 @@ class TestUpdater(unittest.TestCase):
         with self.assertRaises(updater.UpdateError):
             updater.apply(m, self.app)
 
+    @unittest.skipUnless((Path(__file__).parent / "tools" / "shipping.py").exists(),
+                         "only in the development copy")
     def test_shipped_list_matches_repo(self):
         """Every shipped file exists here, so release.json can always be built."""
         import sys
