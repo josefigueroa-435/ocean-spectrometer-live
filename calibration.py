@@ -74,11 +74,21 @@ def noise_level(y: np.ndarray) -> float:
     return float(1.4826 * np.median(np.abs(d - np.median(d))) / math.sqrt(2))
 
 
-def subpixel_peak(y: np.ndarray, i: int) -> float:
-    """Fractional pixel index of the peak at i (parabola through i-1, i, i+1)."""
+def subpixel_peak(y: np.ndarray, i: int, baseline: float = 0.0) -> float:
+    """Fractional pixel index of the peak at i, from pixels i-1, i, i+1.
+
+    Uses a parabola through the logarithms of the counts above `baseline` (exact for a Gaussian
+    line, which a spectrometer's line shape closely follows); falls back to a plain parabola when
+    a neighbour is at or below the baseline.
+    """
     if i <= 0 or i >= len(y) - 1:
         return float(i)
-    a, b, c = float(y[i - 1]), float(y[i]), float(y[i + 1])
+    a, b, c = (float(v) - baseline for v in (y[i - 1], y[i], y[i + 1]))
+    if a > 0 and b > 0 and c > 0:
+        la, lb, lc = math.log(a), math.log(b), math.log(c)
+        den = la - 2 * lb + lc
+        if den < 0:
+            return i + 0.5 * (la - lc) / den
     den = a - 2 * b + c
     if den >= 0:  # not a maximum
         return float(i)
@@ -146,7 +156,7 @@ def find_lines(wl, y, ref_lines, window: float = 1.5, min_snr: float = 15.0,
         snr = height / noise
         if snr < min_snr:
             continue
-        f = subpixel_peak(y, i)
+        f = subpixel_peak(y, i, baseline=float(np.min(y[sel])))
         found = float(np.interp(f, idx, wl))
         out.append({"ref": float(ref), "found": found, "error": found - float(ref), "height": height,
                     "snr": snr})
