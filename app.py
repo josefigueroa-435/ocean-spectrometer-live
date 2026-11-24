@@ -11,6 +11,7 @@ import csv
 import json
 import os
 import sys
+import queue
 import threading
 import time
 from collections import deque
@@ -113,6 +114,7 @@ class App:
         self._closing = False
         self._update_manifest: dict | None = None
         self._updating = False
+        self._ui_calls: queue.SimpleQueue = queue.SimpleQueue()
 
         root.title(f"{APP_NAME} {__version__}" + (" (demo)" if demo else ""))
         root.minsize(1000, 640)
@@ -424,7 +426,7 @@ class App:
     def _diagnose(self) -> None:
         hint = spectro.no_device_hint(spectro.windows_usb_status())
         if not self._closing:
-            self.root.after(0, lambda: self.l_devinfo.configure(text=hint, style="Warn.TLabel"))
+            self._later(lambda: self.l_devinfo.configure(text=hint, style="Warn.TLabel"))
 
     def connect(self) -> None:
         if self.dev is not None:
@@ -589,10 +591,21 @@ class App:
                                 style="Good.TLabel")
 
     # ================================================================ main loop
+    def _later(self, fn) -> None:
+        """Run fn on the GUI thread. Background threads must use this instead of touching Tk."""
+        self._ui_calls.put(fn)
+
     def _poll(self) -> None:
         if self._closing:
             return
         t0 = time.perf_counter()
+        while not self._ui_calls.empty():
+            try:
+                self._ui_calls.get_nowait()()
+            except Exception as exc:  # a failing callback must not stop the poll loop
+                self.set_status(f"Internal error: {exc}", "bad")
+            if self._closing:
+                return
         try:
             if self.acq.error and self.acq.error != self._last_status_error:
                 self._last_status_error = self.acq.error
@@ -981,7 +994,7 @@ class App:
             except Exception as exc:  # offline, GitHub unreachable, ...
                 result, error = None, f"{type(exc).__name__}: {exc}"
             if not self._closing:
-                self.root.after(0, lambda: self._update_checked(result, error, manual))
+                self._later(lambda: self._update_checked(result, error, manual))
 
         threading.Thread(target=work, daemon=True).start()
 
@@ -1025,7 +1038,7 @@ class App:
         self.b_update_later.configure(state="disabled")
 
         def say(text):
-            self.root.after(0, lambda: self.l_update.configure(text=text))
+            self._later(lambda: self.l_update.configure(text=text))
 
         def work():
             try:
@@ -1035,9 +1048,9 @@ class App:
                     ok, log = updater.install_requirements()
                     if not ok:
                         raise updater.UpdateError("installing the Python packages failed:\n" + log[-600:])
-                self.root.after(0, lambda: self._update_done(m, changed, None))
+                self._later(lambda: self._update_done(m, changed, None))
             except Exception as exc:
-                self.root.after(0, lambda: self._update_done(m, None, exc))
+                self._later(lambda e=exc: self._update_done(m, None, e))
 
         threading.Thread(target=work, daemon=True).start()
 
