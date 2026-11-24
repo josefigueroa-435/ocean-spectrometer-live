@@ -305,6 +305,12 @@ class CalibrationTab:
         if self._num(self.v_cwl, "Wavelength") is None or self._num(self.v_cband, "Band") is None:
             return
         self._request("standard", c)
+        rng = spectro.LIGHT_SOURCES.get(self.app.v_source.get())
+        lam = float(self.v_cwl.get())
+        if rng and not rng[0] <= lam <= rng[1]:
+            self.app.set_status(f"Recording standard {self._fmt_c(c)}... Note: {lam:g} nm is outside the "
+                                f"{self.app.v_source.get()} range ({rng[0]:.0f}-{rng[1]:.0f} nm).", "warn")
+            return
         self.app.set_status(f"Recording standard {self._fmt_c(c)}: waiting for a fresh spectrum...")
 
     def record_unknown(self) -> None:

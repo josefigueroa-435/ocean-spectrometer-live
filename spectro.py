@@ -291,6 +291,53 @@ class DemoSpectrometer(SpectrometerBase):
 
 # ---------------------------------------------------------------- math
 
+# Measurement presets: the wavelength range where each light source gives usable light (nm).
+# None = no limit. Ranges are approximate working ranges, not hard limits of the lamps.
+LIGHT_SOURCES = {
+    "Full range (any source)": None,
+    "Halogen (visible-NIR)": (400.0, 1000.0),
+    "Deuterium (UV)": (200.0, 400.0),
+    "Deuterium + halogen": (200.0, 1000.0),
+}
+
+
+def working_mask(wl, source: str) -> np.ndarray:
+    """True for pixels inside the light source's working range (all True for no limit)."""
+    wl = np.asarray(wl, dtype=float)
+    rng = LIGHT_SOURCES.get(source)
+    if not rng:
+        return np.ones(wl.shape, dtype=bool)
+    mask = (wl >= rng[0]) & (wl <= rng[1])
+    return mask if mask.any() else np.ones(wl.shape, dtype=bool)
+
+
+def suggest_integration_us(current_us: int, raw, mask, max_intensity: float, limits_us,
+                           target: float = 0.75) -> tuple[int, str]:
+    """Integration time that brings the brightest pixel inside mask to `target` of full scale.
+
+    Counts scale linearly with integration time (above the electronic offset). If the range is
+    saturated the true level is unknown, so the time is cut to a third and the user tries again.
+    Returns (new integration time in us, explanation).
+    """
+    raw = np.asarray(raw, dtype=float)
+    sel = raw[np.asarray(mask, dtype=bool)]
+    lo, hi = limits_us
+    if sel.size == 0:
+        return current_us, "no pixels in the working range"
+    peak = float(np.nanmax(sel))
+    if peak >= 0.98 * max_intensity:
+        new = int(max(lo, current_us / 3))
+        return new, "saturated in the working range: shortened, click again to fine-tune"
+    if peak < 0.01 * max_intensity:
+        return current_us, "almost no light in the working range (is the lamp on and the fiber connected?)"
+    new = int(round(current_us * target * max_intensity / peak))
+    clipped = int(min(max(new, lo), hi))
+    note = f"brightest point in range was {100 * peak / max_intensity:.0f}% of full scale"
+    if clipped != new:
+        note += "; limited by the spectrometer's integration range"
+    return clipped, note
+
+
 MODES = ("Scope", "Scope - dark", "Absorbance", "Transmittance")
 MODE_UNITS = {
     "Scope": "Counts",

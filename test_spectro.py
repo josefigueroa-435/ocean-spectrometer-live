@@ -96,6 +96,38 @@ class TestMath(unittest.TestCase):
         self.assertIn("other program", spectro.no_device_hint([("Ocean Optics HR4000 (WinUSB)", "OK", "0")]))
 
 
+class TestLightSource(unittest.TestCase):
+    def test_working_mask(self):
+        wl = np.linspace(195, 1126, 1000)
+        m = spectro.working_mask(wl, "Deuterium (UV)")
+        self.assertTrue(np.all((wl[m] >= 200) & (wl[m] <= 400)))
+        self.assertTrue(spectro.working_mask(wl, "Full range (any source)").all())
+        self.assertTrue(spectro.working_mask(wl, "no such source").all())
+        self.assertTrue(spectro.working_mask(np.linspace(1500, 1600, 10), "Halogen (visible-NIR)").all())  # no overlap
+
+    def test_suggest_integration(self):
+        raw = np.zeros(100)
+        mask = np.zeros(100, dtype=bool)
+        mask[20:60] = True
+        raw[30] = 4096.0                                     # 25% of 16383 inside the range
+        raw[80] = 16383.0                                    # saturated, but outside the range: ignored
+        us, note = spectro.suggest_integration_us(100_000, raw, mask, 16383.0, (10, 655_350_000))
+        self.assertAlmostEqual(us, 100_000 * 0.75 * 16383 / 4096, delta=2)
+        self.assertIn("25%", note)
+        raw[40] = 16383.0                                    # saturated inside: cut to a third
+        us, note = spectro.suggest_integration_us(90_000, raw, mask, 16383.0, (10, 655_350_000))
+        self.assertEqual(us, 30_000)
+        self.assertIn("saturated", note)
+        us, note = spectro.suggest_integration_us(100_000, np.full(100, 5.0), mask, 16383.0, (10, 655_350_000))
+        self.assertEqual(us, 100_000)                        # no light: leave it
+        self.assertIn("no light", note)
+        raw = np.zeros(100)
+        raw[30] = 0.02 * 16383                               # 2%: would need 3.75 s; limit 1 s
+        us, note = spectro.suggest_integration_us(100_000, raw, mask, 16383.0, (10, 1_000_000))
+        self.assertEqual(us, 1_000_000)
+        self.assertIn("limited", note)
+
+
 class TestDemo(unittest.TestCase):
     def test_shape_and_limits(self):
         d = spectro.DemoSpectrometer(seed=1)
@@ -337,6 +369,34 @@ class TestGui(unittest.TestCase):
                 a.clear_held()
                 self.assertEqual(len(a.held), 0)
 
+                # light-source preset: deuterium range ignores the lines above 400 nm
+                a.v_mode.set("Scope")
+                a._on_mode()
+                a.dev.lamp, a.dev.sample_in = "lines", False
+                a.v_source.set("Deuterium (UV)")
+                a.set_light_source()
+                self.assertEqual(tuple(round(v) for v in a.ax.get_xlim()), (200, 400))
+                t = time.time()
+                pump(5, lambda: a.info and a.info["t_start"] > t)
+                self.assertIn("in 200-400 nm", a.l_sat.cget("text"))
+                a.full_range()  # zoomed out, the peak search still stays inside the working range
+                self.assertLess(float(a.l_peak.cget("text").split(":")[1].split("nm")[0]), 400)
+                # halogen preset + Set integration fills the range to ~75%
+                a.dev.lamp = "continuum"
+                a.v_source.set("Halogen (visible-NIR)")
+                a.set_light_source()
+                t = time.time()
+                pump(5, lambda: a.info and a.info["t_start"] > t)
+                a.auto_integration()
+                t = time.time()
+                pump(8, lambda: a.info and a.info["t_start"] > t and a.info["int_us"] == a.acq.params["int_us"])
+                mask = a._work_mask()
+                pct = 100 * float(np.max(a.raw[mask])) / a.dev.max_intensity
+                self.assertAlmostEqual(pct, 75, delta=8)
+                self.assertEqual(a._meta()["Light source"], "Halogen (visible-NIR)")
+                a.v_source.set("Full range (any source)")
+                a.set_light_source()
+
                 # pause / single
                 a.toggle_run()
                 self.assertFalse(a.acq.running)
@@ -347,8 +407,8 @@ class TestGui(unittest.TestCase):
                 a.on_close()
             with open(settings, encoding="utf-8") as fh:
                 saved = json.load(fh)
-            self.assertEqual(saved["mode"], "Absorbance")
-            self.assertEqual(saved["int_ms"], "20")
+            self.assertEqual(saved["mode"], "Scope")  # last mode used in the session
+            self.assertGreater(float(saved["int_ms"]), 20)  # raised by Set integration
 
 
 if __name__ == "__main__":

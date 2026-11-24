@@ -70,6 +70,7 @@ DEFAULTS = {
     "band": "1.0",
     "every": "0",
     "data_dir": "",
+    "light_source": "Full range (any source)",
     "geometry": "zoomed",
 }
 
@@ -341,10 +342,24 @@ class App:
         bar.pack(side="top", fill="x")
         tb = NavigationToolbar2Tk(self.canvas, bar, pack_toolbar=False)
         tb.update()
+        # matplotlib reserves a wide blank label for "(x, y) = ..."; the app has its own cursor
+        # readout, so drop it to leave room for the light-source controls on small screens
+        for child in tb.winfo_children():
+            if isinstance(child, tk.Label):  # the message label and its two-line spacer
+                child.pack_forget()
+        tb.pack_propagate(True)  # matplotlib fixes the toolbar at the figure's width; size it to its buttons
         tb.pack(side="left")
         ttk.Checkbutton(bar, text="Auto-scale Y", variable=self.v_autoy, command=self._redraw).pack(
             side="left", padx=10)
         ttk.Button(bar, text="Full range", command=self.full_range).pack(side="left")
+        ttk.Label(bar, text="Light source").pack(side="left", padx=(18, 4))
+        src = self.s.get("light_source")
+        self.v_source = tk.StringVar(value=src if src in spectro.LIGHT_SOURCES else DEFAULTS["light_source"])
+        cb = ttk.Combobox(bar, textvariable=self.v_source, values=list(spectro.LIGHT_SOURCES),
+                          state="readonly", width=22)
+        cb.pack(side="left")
+        cb.bind("<<ComboboxSelected>>", lambda _e: self.set_light_source())
+        ttk.Button(bar, text="Set integration", command=self.auto_integration).pack(side="left", padx=4)
         readout = ttk.Frame(tab_spec, padding=(6, 0, 6, 2))
         readout.pack(side="top", fill="x")
         self.l_peak = ttk.Label(readout, text="Peak: -", style="Big.TLabel")
@@ -509,7 +524,11 @@ class App:
         self.b_run.configure(state="normal", text="Pause")
         self.b_single.configure(state="normal")
         self.b_disconnect.configure(state="normal")
-        self.ax.set_xlim(float(self.wl[0]), float(self.wl[-1]))
+        rng = spectro.LIGHT_SOURCES.get(self.v_source.get())
+        if rng:  # open on the light source's working range
+            self.ax.set_xlim(max(rng[0], float(self.wl[0])), min(rng[1], float(self.wl[-1])))
+        else:
+            self.ax.set_xlim(float(self.wl[0]), float(self.wl[-1]))
         self._show_message("Waiting for the first spectrum...")
         self._update_store_labels()
         self.cal.on_connect()
@@ -683,13 +702,16 @@ class App:
             self.l_rate.configure(text=f"{rate:.1f} spectra/s" if rate >= 1 else f"{1 / rate:.1f} s/spectrum")
         p = self.info
         if p and self.dev is not None:
-            peak = float(np.max(self.raw))
+            mask = self._work_mask()
+            peak = float(np.max(self.raw[mask]))
+            rng = spectro.LIGHT_SOURCES.get(self.v_source.get())
+            where = f" in {rng[0]:.0f}-{rng[1]:.0f} nm" if rng else ""
             if peak >= 0.98 * self.dev.max_intensity:
-                self.l_sat.configure(text=f"SATURATED ({peak:.0f} counts): lower the integration time",
+                self.l_sat.configure(text=f"SATURATED{where} ({peak:.0f} counts): lower the integration time",
                                      style="Bad.TLabel")
             else:
                 pct = 100 * peak / self.dev.max_intensity
-                self.l_sat.configure(text=f"Max {peak:.0f} counts ({pct:.0f}% of full scale)",
+                self.l_sat.configure(text=f"Max{where} {peak:.0f} counts ({pct:.0f}% of full scale)",
                                      style="Warn.TLabel" if pct < 10 else "TLabel")
 
     def _boxcar(self) -> int:
@@ -716,10 +738,10 @@ class App:
         self.ax.set_ylabel(spectro.MODE_UNITS[mode] if self.y_ok else "Counts")
         # In absorbance/transmittance, pixels where the reference barely rose above dark are
         # noise; leave them plotted but keep them out of the peak search and the Y auto-scale.
-        y_trusted = self.y
+        ok = self._work_mask()
         if self.y_ok and mode in ("Absorbance", "Transmittance"):
-            ok = spectro.reliable_pixels(self.dark, self.ref, self._boxcar())
-            y_trusted = np.where(ok, self.y, np.nan)
+            ok = ok & spectro.reliable_pixels(self.dark, self.ref, self._boxcar())
+        y_trusted = self.y if ok.all() else np.where(ok, self.y, np.nan)
         lo, hi = self.ax.get_xlim()
         pk = spectro.peak_in_window(self.wl, y_trusted, lo, hi)
         if pk:
@@ -785,6 +807,44 @@ class App:
                 return
         pad = (ymax - ymin) * 0.06 or 1.0
         self.ax.set_ylim(ymin - pad, ymax + pad)
+
+    # ---------------------------------------------------------------- light source preset
+    def _work_mask(self) -> np.ndarray:
+        if self.wl is None:
+            return np.ones(0, dtype=bool)
+        return spectro.working_mask(self.wl, self.v_source.get())
+
+    def set_light_source(self) -> None:
+        """Measurement preset: show and use only the light source's working range."""
+        self.s["light_source"] = self.v_source.get()
+        rng = spectro.LIGHT_SOURCES.get(self.v_source.get())
+        if self.wl is not None:
+            lo, hi = (max(rng[0], float(self.wl[0])), min(rng[1], float(self.wl[-1]))) if rng else \
+                (float(self.wl[0]), float(self.wl[-1]))
+            self.ax.set_xlim(lo, hi)
+            self.v_autoy.set(True)
+            self._redraw()
+            self._update_rate()
+        if rng:
+            self.set_status(f"{self.v_source.get()}: working range {rng[0]:.0f}-{rng[1]:.0f} nm. Peak, auto-scale and "
+                            "the max-counts readout use only this range. 'Set integration' fills it to ~75%.", "good")
+        else:
+            self.set_status("Light source: full range.")
+
+    def auto_integration(self) -> None:
+        """Pick the integration time that puts the brightest point in the working range at ~75%."""
+        if self.dev is None or self.raw is None or self.info is None:
+            self.set_status("Connect and wait for a spectrum first.", "warn")
+            return
+        new_us, note = spectro.suggest_integration_us(self.info["int_us"], self.raw, self._work_mask(),
+                                                      self.dev.max_intensity, self.dev.int_limits_us)
+        if new_us == self.info["int_us"]:
+            self.set_status(f"Integration time unchanged: {note}.", "warn")
+            return
+        self.v_int.set(f"{new_us / 1000:g}")
+        if self.apply_params():
+            self.set_status(f"Integration time set to {new_us / 1000:g} ms ({note}). Store dark and reference "
+                            "again if you had stored them.", "good")
 
     def full_range(self) -> None:
         if self.wl is not None:
@@ -879,6 +939,7 @@ class App:
             "Mode": self.v_mode.get() if self.y_ok else "Scope",
             "Wavelength calibration": self.cal.describe(d.serial if d else None),
             "Sample": self.v_sample.get().strip(),
+            "Light source": self.v_source.get(),
         }
         for name, info in (("Dark", self.dark_info), ("Reference", self.ref_info)):
             meta[f"{name} stored"] = (
@@ -974,6 +1035,10 @@ class App:
         except ValueError:
             self.set_status("Trend needs 1-6 wavelengths (e.g. 520, 700), a band >= 0 and an interval >= 0.", "bad")
             return
+        rng = spectro.LIGHT_SOURCES.get(self.v_source.get())
+        if rng and any(not rng[0] <= w <= rng[1] for w in wls):
+            self.set_status(f"Note: some trend wavelengths are outside the {self.v_source.get()} range "
+                            f"({rng[0]:.0f}-{rng[1]:.0f} nm), where there is little light.", "warn")
         out = [w for w in wls if not self.wl[0] <= w <= self.wl[-1]]
         if out:
             self.set_status(f"{out} nm is outside {self.wl[0]:.1f}-{self.wl[-1]:.1f} nm.", "bad")
@@ -1160,7 +1225,7 @@ class App:
             "edark": bool(self.v_edark.get()), "nonlin": bool(self.v_nonlin.get()),
             "mode": self.v_mode.get(), "autoy": bool(self.v_autoy.get()),
             "sample": self.v_sample.get(), "track": self.v_track.get(), "band": self.v_band.get(),
-            "every": self.v_every.get(), "data_dir": self.data_dir,
+            "every": self.v_every.get(), "data_dir": self.data_dir, "light_source": self.v_source.get(),
             "geometry": "zoomed" if self.root.state() == "zoomed" else self.root.winfo_geometry(),
         }
         try:
